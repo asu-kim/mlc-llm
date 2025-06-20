@@ -855,8 +855,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         return@Thread
                     }
 
-                    val response = rag.runRAGQuery(prompt, engine)
-                    content = ChatCompletionMessageContent(text = response)
+//                    val response = rag.runRAGQuery(prompt, engine)
+//                    Log.d("Response before rag", "response ${response}")
+//                    content = ChatCompletionMessageContent(text = response)
+                    val relevantContext = rag.runRAGQuery(prompt, engine)
+
+                    val combinedPrompt = "$relevantContext\n\n$prompt"
+                    Log.d("RAG_PROMPT", "Final prompt passed to engine:\n$combinedPrompt")
+
+                    content = ChatCompletionMessageContent(text = combinedPrompt)
                 } else {
                     // Use fallback .csv filtering logic
                     val kgText = loadKGFromProvider(activity)

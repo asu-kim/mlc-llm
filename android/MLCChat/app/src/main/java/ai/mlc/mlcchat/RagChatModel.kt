@@ -41,6 +41,46 @@ class RagChatModel(private val context: Context) {
         Log.d("RAG", "Embedding cache cleared.")
     }
 
+//    fun runRAGQuery(query: String, engine: MLCEngine): String {
+//        Log.d("RAG_DEBUG", "runRAGQuery called with query: $query")
+//
+//        if (embeddingList.isEmpty()) {
+//            embeddingList = loadVecFromKGProvider(context)
+//        }
+//
+//        Log.d("RAG_DEBUG", "Embedding list size after load: ${embeddingList.size}")
+//
+//        val topChunks = retrieveTopK(query, engine, embeddingList, k = 6)
+//        Log.d("RAG_DEBUG", "Top chunks retrieved: ${topChunks.map { it.text }}")
+//
+////        val formattedEvents = topChunks.joinToString("\n") {
+////            "- ${formatEvent(it.text)}"
+////        }
+//
+//        val formattedEvents = topChunks.joinToString("\n") {
+//            it.text.trim().let { line -> if (!line.endsWith(".")) "$line." else line }
+//        }
+//        val prompt = """
+//            $formattedEvents
+//
+//            $query
+//        """.trimIndent()
+////        val prompt = """
+////
+////
+////            Calendar Data:
+////            ${topChunks.joinToString("\n") { "- ${it.text}" }}
+////
+////            prompt:
+////            $query
+////
+////
+////            """.trimIndent()
+//
+//        Log.d("RAG_DEBUG", "Final prompt to LLM:\n$prompt")
+//
+//        return engine.generateSync(prompt)
+//    }
     fun runRAGQuery(query: String, engine: MLCEngine): String {
         Log.d("RAG_DEBUG", "runRAGQuery called with query: $query")
 
@@ -50,36 +90,14 @@ class RagChatModel(private val context: Context) {
 
         Log.d("RAG_DEBUG", "Embedding list size after load: ${embeddingList.size}")
 
-        val topChunks = retrieveTopK(query, engine, embeddingList, k = 6)
+        val topChunks = retrieveTopK(query, engine, embeddingList, k = 5)
         Log.d("RAG_DEBUG", "Top chunks retrieved: ${topChunks.map { it.text }}")
 
-//        val formattedEvents = topChunks.joinToString("\n") {
-//            "- ${formatEvent(it.text)}"
-//        }
-
-        val formattedEvents = topChunks.joinToString("\n") {
+        val relevantContext = topChunks.joinToString("\n") {
             it.text.trim().let { line -> if (!line.endsWith(".")) "$line." else line }
         }
-        val prompt = """
-            $formattedEvents
-        
-            $query
-        """.trimIndent()
-//        val prompt = """
-//
-//
-//            Calendar Data:
-//            ${topChunks.joinToString("\n") { "- ${it.text}" }}
-//
-//            prompt:
-//            $query
-//
-//
-//            """.trimIndent()
 
-        Log.d("RAG_DEBUG", "Final prompt to LLM:\n$prompt")
-
-        return engine.generateSync(prompt)
+        return relevantContext
     }
 
     private fun formatEvent(raw: String): String {
@@ -154,6 +172,24 @@ class RagChatModel(private val context: Context) {
         return dot / (sqrt(normA) * sqrt(normB) + 1e-8f)
     }
 
+    fun levenshtein(a: String, b: String): Int {
+        val dp = Array(a.length + 1) { IntArray(b.length + 1) }
+        for (i in 0..a.length) dp[i][0] = i
+        for (j in 0..b.length) dp[0][j] = j
+
+        for (i in 1..a.length) {
+            for (j in 1..b.length) {
+                val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+                dp[i][j] = minOf(
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1,
+                    dp[i - 1][j - 1] + cost
+                )
+            }
+        }
+        return dp[a.length][b.length]
+    }
+
     private fun retrieveTopK(
         query: String,
         engine: MLCEngine,
@@ -173,7 +209,13 @@ class RagChatModel(private val context: Context) {
         val scoredData = data.map {
             val cosine = cosineSimilarity(queryVec, it.embedding)
             val overlap = phraseOverlapScore(normalizedQuery, it.text)
-            val finalScore = 0.7f * cosine + 0.3f * overlap
+            val editDistance = levenshtein(normalizedQuery, normalizeText(it.text))
+            val maxLen = maxOf(normalizedQuery.length, it.text.length)
+            val levenshteinScore = 1f - (editDistance.toFloat() / (maxLen + 1e-5f))
+            //val finalScore = 0.7f * cosine + 0.3f * overlap
+
+            val finalScore = 0.6f * cosine + 0.3f * overlap + 0.1f * levenshteinScore
+            Log.d("RAG_SCORE", "Final: $finalScore")
             it to finalScore
         }
 
@@ -192,7 +234,7 @@ class RagChatModel(private val context: Context) {
         val finalContext = (forcedMatches + topScored).distinctBy { it.text }
 
         finalContext.forEach {
-            Log.d("RAG_SIMILARITY", "Included in final context: '${it.text}'")
+            //Log.d("RAG_SIMILARITY", "Included in final context: '${it.text}'")
         }
 
         return finalContext
@@ -204,4 +246,5 @@ class RagChatModel(private val context: Context) {
             .replace(Regex("\\s+"), " ")
             .trim()
     }
+
 }
