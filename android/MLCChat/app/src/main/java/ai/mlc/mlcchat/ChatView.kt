@@ -59,12 +59,23 @@ import androidx.navigation.NavController
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.launch
 
+
+// new
+import androidx.compose.material3.Button
 @ExperimentalMaterial3Api
 @Composable
+//fun ChatView(
+//    navController: NavController, chatState: AppViewModel.ChatState, activity: Activity
+//)
 fun ChatView(
-    navController: NavController, chatState: AppViewModel.ChatState, activity: Activity
-) {
+    navController: NavController,
+    chatState: AppViewModel.ChatState,
+    activity: Activity,
+    ragModel: RagChatModel
+)
+{
     val localFocusManager = LocalFocusManager.current
+    (chatState as AppViewModel.ChatState).ragModel = ragModel
     (activity as MainActivity).chatState = chatState
     Scaffold(topBar = {
         TopAppBar(
@@ -77,7 +88,9 @@ fun ChatView(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
             navigationIcon = {
                 IconButton(
-                    onClick = { navController.popBackStack() },
+                    onClick = {
+//                        chatState.requestResetChat()
+                        navController.popBackStack() },
                     enabled = chatState.interruptable()
                 ) {
                     Icon(
@@ -143,6 +156,18 @@ fun ChatView(
             }
             Divider(thickness = 1.dp, modifier = Modifier.padding(top = 5.dp))
             SendMessageView(chatState = chatState, activity)
+            // added by deeksha
+
+//            Button(
+//                onClick = {
+//                    (activity as MainActivity).openAppSettings("com.example.knowledgegraph")
+//                },
+//                modifier = Modifier
+//                    .padding(top = 10.dp)
+//                    .align(Alignment.CenterHorizontally)
+//            ) {
+//                Text("Open Knowledge Graph Settings")
+//            }
         }
     }
 }
@@ -264,6 +289,22 @@ fun MessageView(messageData: MessageData, activity: Activity?) {
 fun SendMessageView(chatState: AppViewModel.ChatState, activity: Activity) {
     val localFocusManager = LocalFocusManager.current
     val localActivity : MainActivity = activity as MainActivity
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Text(
+            text = if (chatState.useRAG.value) "RAG Enabled" else "RAG Disabled",
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = chatState.useRAG.value,
+            onCheckedChange = { chatState.useRAG.value = it }
+        )
+    }
     Row(
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,

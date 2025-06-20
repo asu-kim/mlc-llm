@@ -25,6 +25,7 @@ import kotlin.concurrent.thread
 import ai.mlc.mlcllm.OpenAIProtocol.ChatCompletionMessage
 import ai.mlc.mlcllm.OpenAIProtocol.ChatCompletionMessageContent
 import android.app.Activity
+import android.content.Intent
 import kotlinx.coroutines.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -32,6 +33,10 @@ import android.net.Uri
 import java.io.ByteArrayOutputStream
 import android.util.Base64
 import android.util.Log
+import android.provider.Settings
+
+import ai.mlc.mlcllm.generateSync
+import ai.mlc.mlcllm.getEmbedding
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     val modelList = emptyList<ModelState>().toMutableStateList()
@@ -510,6 +515,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val messages = emptyList<MessageData>().toMutableStateList()
         val report = mutableStateOf("")
         val modelName = mutableStateOf("")
+        val useRAG = mutableStateOf(false)
+
+        var ragModel: RagChatModel? = null
         private var modelChatState = mutableStateOf(ModelChatState.Ready)
             @Synchronized get
             @Synchronized set
@@ -695,81 +703,236 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return "data:image/jpg;base64,$imageBase64"
         }
 
+        //
+// Utility function to load KG content
+        fun loadKGFromProvider(context: Context): String {
+            val uri = Uri.parse("content://com.example.knowledgegraph.kgprovider/knowledge_graph")
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+
+            val builder = StringBuilder()
+            cursor?.use {
+                val subjectIndex = it.getColumnIndexOrThrow("subject")
+                val predicateIndex = it.getColumnIndexOrThrow("predicate")
+                val objectIndex = it.getColumnIndexOrThrow("object")
+
+                while (it.moveToNext()) {
+                    val subject = it.getString(subjectIndex)
+                    val predicate = it.getString(predicateIndex)
+                    val obj = it.getString(objectIndex)
+                    builder.append("$subject,$predicate,$obj\n")
+                }
+            }
+
+            return builder.toString()
+        }
+        //        fun requestGenerate(prompt: String, activity: Activity) {
+//            require(chatable())
+//            switchToGenerating()
+//            appendMessage(MessageRole.User, prompt)
+//
+//            appendMessage(MessageRole.Assistant, "")
+//
+//            Thread {
+//
+//                val kgText = loadKGFromProvider(activity)
+//                // Extract all keywords from the prompt (words without punctuation)
+//                val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
+//
+//                // Filter only lines that contain any keyword, and take the first 15
+////                val relevantLines = kgText.lines()
+////                    .filter { line ->
+////                        keywords.any { keyword -> line.contains(keyword, ignoreCase = true) }
+////                    }
+////                    .take(15)
+//                val relevantLines = keywords.flatMap { keyword ->
+//                    val regex = Regex("\\b${Regex.escape(keyword.lowercase())}\\b")
+//                    kgText.lines().filter { line ->
+//                        regex.containsMatchIn(line.lowercase().replace("\"", ""))
+//                    }
+//                }
+//
+//                // Convert relevant CSV lines into readable sentences
+//                //val knowledgeGraph = relevantLines.joinToString("\n")
+//                val knowledgeGraph = relevantLines.joinToString("\n") {
+//                    val parts = it.split(",")
+//                    if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
+//                }
+//                Log.d("MLCChat", "Filtered KG:\n$knowledgeGraph")
+//                // Combine with user question
+//                val combinedPrompt = "$knowledgeGraph\n\n$prompt"
+//                var content = ChatCompletionMessageContent(text = combinedPrompt)
+//
+//                // Handle image if available
+//                if (imageUri != null) {
+//                    val uri = imageUri
+//                    val bitmap = uri?.let {
+//                        activity.contentResolver.openInputStream(it)?.use { input ->
+//                            BitmapFactory.decodeStream(input)
+//                        }
+//                    }
+//                    val imageBase64URL = bitmapToURL(bitmap!!)
+//                    val parts = listOf(
+//                        mapOf("type" to "text", "text" to prompt),
+//                        mapOf("type" to "image_url", "image_url" to imageBase64URL)
+//                    )
+//                    content = ChatCompletionMessageContent(parts = parts)
+//                    imageUri = null
+//                }
+//
+//                // Launch inference inside executor
+//                executorService.submit {
+//                    testEmbeddingExtraction(prompt)
+//                    historyMessages.add(ChatCompletionMessage(
+//                        role = OpenAIProtocol.ChatCompletionRole.user,
+//                        content = content
+//                    ))
+//
+//                    viewModelScope.launch {
+//                        val responses = engine.chat.completions.create(
+//                            messages = historyMessages,
+//                            stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+//                        )
+//
+//                        var finishReasonLength = false
+//                        var streamingText = ""
+//
+//                        for (res in responses) {
+//                            if (!callBackend {
+//                                    for (choice in res.choices) {
+//                                        choice.delta.content?.let { content ->
+//                                            streamingText += content.asText()
+//                                        }
+//                                        choice.finish_reason?.let { finishReason ->
+//                                            if (finishReason == "length") {
+//                                                finishReasonLength = true
+//                                            }
+//                                        }
+//                                    }
+//                                    updateMessage(MessageRole.Assistant, streamingText)
+//                                    res.usage?.let { finalUsage ->
+//                                        report.value = finalUsage.extra?.asTextLabel() ?: ""
+//                                    }
+//                                    if (finishReasonLength) {
+//                                        streamingText += " [output truncated due to context length limit...]"
+//                                        updateMessage(MessageRole.Assistant, streamingText)
+//                                    }
+//                                });
+//                        }
+//
+//                        if (streamingText.isNotEmpty()) {
+//                            historyMessages.add(ChatCompletionMessage(
+//                                role = OpenAIProtocol.ChatCompletionRole.assistant,
+//                                content = streamingText
+//                            ))
+//                        } else {
+//                            if (historyMessages.isNotEmpty()) {
+//                                historyMessages.removeAt(historyMessages.size - 1)
+//                            }
+//                        }
+//
+//                        if (modelChatState.value == ModelChatState.Generating) switchToReady()
+//                    }
+//                }
+//            }.start()
+//        }
         fun requestGenerate(prompt: String, activity: Activity) {
             require(chatable())
             switchToGenerating()
             appendMessage(MessageRole.User, prompt)
             appendMessage(MessageRole.Assistant, "")
-            var content = ChatCompletionMessageContent(text=prompt)
-            if (imageUri != null) {
-                val uri = imageUri
-                val bitmap = uri?.let {
-                    activity.contentResolver.openInputStream(it)?.use { input ->
-                        BitmapFactory.decodeStream(input)
+
+            Thread {
+                val content: ChatCompletionMessageContent
+
+                if (useRAG.value) {
+                    Log.d("RAG_STATUS", "Is ragModel null? ${ragModel == null}")
+                    Log.d("RAG_STATUS", "useRAG toggle: ${useRAG.value}")
+                    val rag = ragModel
+                    if (rag == null) {
+                        Log.e("RAG", "RAG model not initialized, skipping RAG response.")
+                        appendMessage(MessageRole.Assistant, "Sorry, the RAG model is not ready yet.")
+                        switchToReady()
+                        return@Thread
                     }
-                }
-                val imageBase64URL = bitmapToURL(bitmap!!)
-                Log.v("requestGenerate", "image base64 url: $imageBase64URL")
-                val parts = listOf(
-                    mapOf("type" to "text", "text" to prompt),
-                    mapOf("type" to "image_url", "image_url" to imageBase64URL)
-                )
-                content = ChatCompletionMessageContent(parts=parts)
-                imageUri = null
-            }
 
-            executorService.submit {
-                historyMessages.add(ChatCompletionMessage(
-                    role = OpenAIProtocol.ChatCompletionRole.user,
-                    content = content
-                ))
+                    val response = rag.runRAGQuery(prompt, engine)
+                    content = ChatCompletionMessageContent(text = response)
+                } else {
+                    // Use fallback .csv filtering logic
+                    val kgText = loadKGFromProvider(activity)
+                    val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
 
-                viewModelScope.launch {
-                    val responses = engine.chat.completions.create(
-                        messages = historyMessages,
-                        stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
-                    )
-
-                    var finishReasonLength = false
-                    var streamingText = ""
-
-                    for (res in responses) {
-                        if (!callBackend {
-                            for (choice in res.choices) {
-                                choice.delta.content?.let { content ->
-                                    streamingText += content.asText()
-                                }
-                                choice.finish_reason?.let { finishReason ->
-                                    if (finishReason == "length") {
-                                        finishReasonLength = true
-                                    }
-                                }
-                            }
-                            updateMessage(MessageRole.Assistant, streamingText)
-                            res.usage?.let { finalUsage ->
-                                report.value = finalUsage.extra?.asTextLabel() ?: ""
-                            }
-                            if (finishReasonLength) {
-                                streamingText += " [output truncated due to context length limit...]"
-                                updateMessage(MessageRole.Assistant, streamingText)
-                            }
-                        });
-                    }
-                    if (streamingText.isNotEmpty()) {
-                        historyMessages.add(ChatCompletionMessage(
-                            role = OpenAIProtocol.ChatCompletionRole.assistant,
-                            content = streamingText
-                        ))
-                        streamingText = ""
-                    } else {
-                        if (historyMessages.isNotEmpty()) {
-                            historyMessages.removeAt(historyMessages.size - 1)
+                    val relevantLines = keywords.flatMap { keyword ->
+                        val regex = Regex("\\b${Regex.escape(keyword.lowercase())}\\b")
+                        kgText.lines().filter { line ->
+                            regex.containsMatchIn(line.lowercase().replace("\"", ""))
                         }
                     }
 
-                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
+                    val knowledgeGraph = relevantLines.joinToString("\n") {
+                        val parts = it.split(",")
+                        if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
+                    }
+
+                    val combinedPrompt = "$knowledgeGraph\n\n$prompt"
+                    content = ChatCompletionMessageContent(text = combinedPrompt)
                 }
-            }
+
+                executorService.submit {
+                    historyMessages.add(
+                        ChatCompletionMessage(
+                            role = OpenAIProtocol.ChatCompletionRole.user,
+                            content = content
+                        )
+                    )
+
+                    viewModelScope.launch {
+                        val responses = engine.chat.completions.create(
+                            messages = historyMessages,
+                            stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+                        )
+
+                        var finishReasonLength = false
+                        var streamingText = ""
+
+                        for (res in responses) {
+                            if (!callBackend {
+                                    for (choice in res.choices) {
+                                        choice.delta.content?.let { delta ->
+                                            streamingText += delta.asText()
+                                        }
+                                        choice.finish_reason?.let { reason ->
+                                            if (reason == "length") finishReasonLength = true
+                                        }
+                                    }
+                                    updateMessage(MessageRole.Assistant, streamingText)
+                                    res.usage?.let { finalUsage ->
+                                        report.value = finalUsage.extra?.asTextLabel() ?: ""
+                                    }
+                                    if (finishReasonLength) {
+                                        streamingText += " [output truncated due to context length limit...]"
+                                        updateMessage(MessageRole.Assistant, streamingText)
+                                    }
+                                });
+                        }
+
+                        if (streamingText.isNotEmpty()) {
+                            historyMessages.add(
+                                ChatCompletionMessage(
+                                    role = OpenAIProtocol.ChatCompletionRole.assistant,
+                                    content = streamingText
+                                )
+                            )
+                        } else {
+                            if (historyMessages.isNotEmpty()) {
+                                historyMessages.removeAt(historyMessages.size - 1)
+                            }
+                        }
+
+                        if (modelChatState.value == ModelChatState.Generating) switchToReady()
+                    }
+                }
+            }.start()
         }
 
         private fun appendMessage(role: MessageRole, text: String) {
@@ -789,6 +952,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return modelChatState.value == ModelChatState.Ready
                     || modelChatState.value == ModelChatState.Generating
                     || modelChatState.value == ModelChatState.Falied
+        }
+        fun testEmbeddingExtraction(text: String) {
+            val embedding = engine.getEmbedding(text)
+            if (embedding != null) {
+                Log.d("MLC_Embedding", "Embedding size: ${embedding.size}")
+                Log.d("MLC_Embedding", "First 5 values: ${embedding.take(5)}")
+            } else {
+                Log.e("MLC_Embedding", "Failed to generate embedding for: $text")
+            }
         }
     }
 }
