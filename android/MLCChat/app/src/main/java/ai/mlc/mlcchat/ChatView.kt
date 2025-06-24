@@ -61,12 +61,12 @@ import kotlinx.coroutines.launch
 
 
 // new
-import androidx.compose.material3.Button
+
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 @ExperimentalMaterial3Api
 @Composable
-//fun ChatView(
-//    navController: NavController, chatState: AppViewModel.ChatState, activity: Activity
-//)
+
 fun ChatView(
     navController: NavController,
     chatState: AppViewModel.ChatState,
@@ -77,6 +77,13 @@ fun ChatView(
     val localFocusManager = LocalFocusManager.current
     (chatState as AppViewModel.ChatState).ragModel = ragModel
     (activity as MainActivity).chatState = chatState
+    LaunchedEffect(Unit) {
+        ragModel.setUserProfile(
+            name = "Deeksha Prahlad",
+            role = "PhD student in computer science",
+            timezone = "PST"
+        )
+    }
     Scaffold(topBar = {
         TopAppBar(
             title = {

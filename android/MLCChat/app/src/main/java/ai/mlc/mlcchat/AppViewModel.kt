@@ -845,8 +845,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val content: ChatCompletionMessageContent
 
                 if (useRAG.value) {
-                    Log.d("RAG_STATUS", "Is ragModel null? ${ragModel == null}")
-                    Log.d("RAG_STATUS", "useRAG toggle: ${useRAG.value}")
                     val rag = ragModel
                     if (rag == null) {
                         Log.e("RAG", "RAG model not initialized, skipping RAG response.")
@@ -855,17 +853,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         return@Thread
                     }
 
-//                    val response = rag.runRAGQuery(prompt, engine)
-//                    Log.d("Response before rag", "response ${response}")
-//                    content = ChatCompletionMessageContent(text = response)
+                    val retrievalStart = System.currentTimeMillis()
                     val relevantContext = rag.runRAGQuery(prompt, engine)
+                    val retrievalEnd = System.currentTimeMillis()
+                    Log.d("RAG_TIMING", "RAG retrieval took ${retrievalEnd - retrievalStart}ms")
 
                     val combinedPrompt = "$relevantContext\n\n$prompt"
+//                    val combinedPrompt = "$relevantContext"
                     Log.d("RAG_PROMPT", "Final prompt passed to engine:\n$combinedPrompt")
 
                     content = ChatCompletionMessageContent(text = combinedPrompt)
                 } else {
-                    // Use fallback .csv filtering logic
+                    val retrievalStart = System.currentTimeMillis()
                     val kgText = loadKGFromProvider(activity)
                     val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
 
@@ -882,10 +881,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     val combinedPrompt = "$knowledgeGraph\n\n$prompt"
+                    val retrievalEnd = System.currentTimeMillis()
+                    Log.d("NON_RAG_TIMING", "Fallback .csv response prep took ${retrievalEnd - retrievalStart}ms")
+
                     content = ChatCompletionMessageContent(text = combinedPrompt)
                 }
 
+
                 executorService.submit {
+                    val totalStartTime = System.currentTimeMillis()
                     historyMessages.add(
                         ChatCompletionMessage(
                             role = OpenAIProtocol.ChatCompletionRole.user,
@@ -894,6 +898,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     )
 
                     viewModelScope.launch {
+                        val generationStartTime = System.currentTimeMillis()
+
                         val responses = engine.chat.completions.create(
                             messages = historyMessages,
                             stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
@@ -937,6 +943,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         }
 
                         if (modelChatState.value == ModelChatState.Generating) switchToReady()
+                        val generationEndTime = System.currentTimeMillis()
+                        val generationDuration = generationEndTime - generationStartTime
+                        val totalDuration = generationEndTime - totalStartTime
+
+                        val mode = if (useRAG.value) "RAG" else "non-RAG"
+                        Log.d("GENERATION_TIMING", "$mode model generation took ${generationDuration}ms")
+                        Log.d("TOTAL_LATENCY", "$mode total response time: ${totalDuration}ms")
                     }
                 }
             }.start()
