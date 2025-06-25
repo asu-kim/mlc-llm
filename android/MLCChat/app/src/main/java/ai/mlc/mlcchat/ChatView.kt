@@ -81,7 +81,7 @@ fun ChatView(
         ragModel.setUserProfile(
             name = "Deeksha Prahlad",
             role = "PhD student in computer science",
-            timezone = "PST"
+            timezone = "MST"
         )
     }
     Scaffold(topBar = {

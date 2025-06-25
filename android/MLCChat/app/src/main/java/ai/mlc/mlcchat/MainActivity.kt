@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import com.google.android.gms.location.LocationServices
 
 
 // newely added
@@ -30,6 +31,8 @@ import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
 import ai.mlc.mlcchat.RagChatModel
+import android.location.Geocoder
+import androidx.core.location.LocationManagerCompat.getCurrentLocation
 
 class MainActivity : ComponentActivity() {
     private lateinit var ragModel: RagChatModel
@@ -87,9 +90,13 @@ class MainActivity : ComponentActivity() {
         ragModel.loadEmbeddingsIfNeeded()
         chatState.ragModel = ragModel
 
+
         Log.d("RAG_INIT", "RAG assigned to ChatState: ${chatState.ragModel != null}")
         requestNeededPermissions()
-
+        getCurrentLocation { location ->
+            ragModel.setUserLocation(location)
+            Log.d("RAG_LOCATION", "User location set to: $location")
+        }
         setContent {
             Surface(
                 modifier = Modifier.fillMaxSize()
@@ -148,6 +155,13 @@ class MainActivity : ComponentActivity() {
                 permissionsToRequest.add(Manifest.permission.CAMERA)
             }
         }
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
 
         if (permissionsToRequest.isNotEmpty()) {
             requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
@@ -183,6 +197,24 @@ class MainActivity : ComponentActivity() {
             startActivity(intent)
         } catch (e: ActivityNotFoundException) {
             Toast.makeText(this, "App not found: $targetPackage", Toast.LENGTH_SHORT).show()
+        }
+    }
+    @Suppress("MissingPermission")
+    fun getCurrentLocation(onLocation: (String) -> Unit) {
+        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
+                val geocoder = Geocoder(this, Locale.getDefault())
+                val addressList = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                val city = addressList?.firstOrNull()?.locality ?: "Unknown City"
+                val state = addressList?.firstOrNull()?.adminArea ?: "Unknown State"
+                onLocation("$city, $state")
+            } else {
+                onLocation("Unknown Location")
+            }
+        }.addOnFailureListener {
+            onLocation("Unknown Location")
         }
     }
 }

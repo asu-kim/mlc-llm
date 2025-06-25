@@ -880,6 +880,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
                     }
 
+//                    val knowledgeGraph = kgText.lines().joinToString("\n") {
+//                        val parts = it.split(",")
+//                        if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
+//                    }
                     val combinedPrompt = "$knowledgeGraph\n\n$prompt"
                     val retrievalEnd = System.currentTimeMillis()
                     Log.d("NON_RAG_TIMING", "Fallback .csv response prep took ${retrievalEnd - retrievalStart}ms")
@@ -941,7 +945,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                                 historyMessages.removeAt(historyMessages.size - 1)
                             }
                         }
+                        // Logging
+                        try {
+                            val logFile = File(activity.getExternalFilesDir(null), "eval_log.txt")
+                            val logEntry = """
+                                        1. prompt (${prompt.trim()})
+                                        ans (${streamingText.trim()})
 
+                                    """.trimIndent()
+                            logFile.appendText(logEntry + "\n")
+                            Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
+                        } catch (e: Exception) {
+                            Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
+                        }
                         if (modelChatState.value == ModelChatState.Generating) switchToReady()
                         val generationEndTime = System.currentTimeMillis()
                         val generationDuration = generationEndTime - generationStartTime
