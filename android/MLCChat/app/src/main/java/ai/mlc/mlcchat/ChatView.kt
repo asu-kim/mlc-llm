@@ -1,8 +1,11 @@
 package ai.mlc.mlcchat
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.location.Geocoder
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -64,6 +67,9 @@ import kotlinx.coroutines.launch
 
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import com.google.android.gms.location.LocationServices
+import java.util.Locale
+
 @ExperimentalMaterial3Api
 @Composable
 
@@ -290,7 +296,25 @@ fun MessageView(messageData: MessageData, activity: Activity?) {
         }
     }
 }
+@Suppress("MissingPermission")
+fun getCurrentLocation(context: Context, onLocation: (String) -> Unit) {
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
+    fusedLocationClient.lastLocation
+        .addOnSuccessListener { location ->
+            if (location != null) {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                val addressList = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                val address = addressList?.firstOrNull()?.getAddressLine(0) ?: "Unknown Location"
+                onLocation(address)
+            } else {
+                onLocation("Unknown Location")
+            }
+        }
+        .addOnFailureListener {
+            onLocation("Unknown Location")
+        }
+}
 @ExperimentalMaterial3Api
 @Composable
 fun SendMessageView(chatState: AppViewModel.ChatState, activity: Activity) {
@@ -359,8 +383,15 @@ fun SendMessageView(chatState: AppViewModel.ChatState, activity: Activity) {
         IconButton(
             onClick = {
                 localFocusManager.clearFocus()
-                chatState.requestGenerate(text, activity)
-                text = ""
+//                chatState.requestGenerate(text, activity)
+                getCurrentLocation(activity) { location ->
+                    chatState.ragModel?.setUserLocation(location)
+                    Log.d("RAG_LOCATION", "Live location: $location")
+
+                    chatState.requestGenerate(text, activity)
+
+                    text = ""
+                }
             },
             modifier = Modifier
                 .aspectRatio(1f)

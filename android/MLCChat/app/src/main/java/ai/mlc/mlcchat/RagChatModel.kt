@@ -118,12 +118,27 @@ class RagChatModel(private val context: Context) {
     }
 
 //        return relevantContext
+    val now = ZonedDateTime.now()
+    val dateFormatted = now.toLocalDate()
+    val timeFormatted = now.toLocalTime().withSecond(0).withNano(0)  // cleaner time output
+    val hour = now.hour
+    val timeOfDay = when (hour) {
+        in 5..11 -> "morning"
+        in 12..16 -> "afternoon"
+        in 17..20 -> "evening"
+        else -> "night"
+    }
     return """
         [User: $userName | Role: $userRole | Location: $userLocation | TZ: $userTimezone]
+        [Date: ${now.toLocalDate()} | Time: ${now.toLocalTime().withSecond(0).withNano(0)} (${now.zone}) | Part of Day: $timeOfDay]
         $relevantContext
-    
-        
     """.trimIndent()
+//    return """
+//        [User: $userName | Role: $userRole | Location: $userLocation | TZ: $userTimezone]
+//        $relevantContext
+//
+//
+//    """.trimIndent()
 }
 
     private fun formatEvent(raw: String): String {
@@ -233,13 +248,24 @@ class RagChatModel(private val context: Context) {
 //
 //            Query: $query
 //        """.trimIndent()
+        val now = ZonedDateTime.now()
         val location = getUserLocation()
+        val timeFormatted = now.toLocalTime().toString()
+        val timeOfDay = when (now.hour) {
+            in 5..11 -> "morning"
+            in 12..16 -> "afternoon"
+            in 17..20 -> "evening"
+            else -> "night"
+        }
+
         val enrichedPrompt = """
             User: $userName
             Role: $userRole
             Location: $location
             Time Zone: $userTimezone
-            Date: ${LocalDate.now()}
+            Date: ${now.toLocalDate()}
+            Current Time: $timeFormatted (${now.zone})
+            Part of Day: $timeOfDay
         
             Query: $query
         """.trimIndent()

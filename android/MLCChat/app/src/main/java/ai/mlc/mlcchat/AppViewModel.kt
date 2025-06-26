@@ -947,14 +947,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         // Logging
                         try {
-                            val logFile = File(activity.getExternalFilesDir(null), "eval_log.txt")
-                            val logEntry = """
-                                        1. prompt (${prompt.trim()})
-                                        ans (${streamingText.trim()})
+//                            val logFile = File(activity.getExternalFilesDir(null), "eval_log.txt")
+//                            val logEntry = """
+//                                        1. prompt (${prompt.trim()})
+//                                        ans (${streamingText.trim()})
+//
+//                                    """.trimIndent()
+//                            logFile.appendText(logEntry + "\n")
+//                            Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
+                            val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
 
-                                    """.trimIndent()
+                            // Check if file is new and add header
+                            if (!logFile.exists()) {
+                                logFile.writeText("prompt,answers\n")
+                            }
+
+                            // Format the row as CSV
+                            val promptClean = prompt.trim().replace(",", ";") // Avoid breaking CSV
+                            val answerClean = streamingText.trim().replace(",", ";") // Avoid breaking CSV
+
+                            val logEntry = "$promptClean,\"[$answerClean]\""
+
+                            // Append row to file
                             logFile.appendText(logEntry + "\n")
+
                             Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
+
                         } catch (e: Exception) {
                             Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
                         }

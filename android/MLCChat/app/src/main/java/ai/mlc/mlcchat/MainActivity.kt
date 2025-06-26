@@ -93,10 +93,7 @@ class MainActivity : ComponentActivity() {
 
         Log.d("RAG_INIT", "RAG assigned to ChatState: ${chatState.ragModel != null}")
         requestNeededPermissions()
-        getCurrentLocation { location ->
-            ragModel.setUserLocation(location)
-            Log.d("RAG_LOCATION", "User location set to: $location")
-        }
+
         setContent {
             Surface(
                 modifier = Modifier.fillMaxSize()
@@ -199,22 +196,5 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "App not found: $targetPackage", Toast.LENGTH_SHORT).show()
         }
     }
-    @Suppress("MissingPermission")
-    fun getCurrentLocation(onLocation: (String) -> Unit) {
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            if (location != null) {
-                val geocoder = Geocoder(this, Locale.getDefault())
-                val addressList = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                val city = addressList?.firstOrNull()?.locality ?: "Unknown City"
-                val state = addressList?.firstOrNull()?.adminArea ?: "Unknown State"
-                onLocation("$city, $state")
-            } else {
-                onLocation("Unknown Location")
-            }
-        }.addOnFailureListener {
-            onLocation("Unknown Location")
-        }
-    }
 }
