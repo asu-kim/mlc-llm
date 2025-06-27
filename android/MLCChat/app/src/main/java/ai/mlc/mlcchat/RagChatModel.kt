@@ -12,6 +12,7 @@ import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.time.Duration
 
 data class EmbeddedText(val embedding: FloatArray, val text: String)
 
@@ -20,6 +21,14 @@ class RagChatModel(private val context: Context) {
     private var userRole: String = "User"
     private var userTimezone: String = "PST"
     private var userLocation: String = "Tempe, AZ"
+    private val TIME_KEYWORDS = listOf(
+        "next", "upcoming", "today", "tomorrow", "this week", "weekend",
+        "soon", "schedule", "calendar", "what's", "any events", "anything"
+    )
+    private fun isTimeSensitiveQuery(query: String): Boolean {
+        val q = query.lowercase()
+        return TIME_KEYWORDS.any { it in q }
+    }
     fun setUserProfile(name: String, role: String, timezone: String) {
         userName = name
         userRole = role
@@ -58,46 +67,7 @@ class RagChatModel(private val context: Context) {
         Log.d("RAG", "Embedding cache cleared.")
     }
 
-//    fun runRAGQuery(query: String, engine: MLCEngine): String {
-//        Log.d("RAG_DEBUG", "runRAGQuery called with query: $query")
 //
-//        if (embeddingList.isEmpty()) {
-//            embeddingList = loadVecFromKGProvider(context)
-//        }
-//
-//        Log.d("RAG_DEBUG", "Embedding list size after load: ${embeddingList.size}")
-//
-//        val topChunks = retrieveTopK(query, engine, embeddingList, k = 6)
-//        Log.d("RAG_DEBUG", "Top chunks retrieved: ${topChunks.map { it.text }}")
-//
-////        val formattedEvents = topChunks.joinToString("\n") {
-////            "- ${formatEvent(it.text)}"
-////        }
-//
-//        val formattedEvents = topChunks.joinToString("\n") {
-//            it.text.trim().let { line -> if (!line.endsWith(".")) "$line." else line }
-//        }
-//        val prompt = """
-//            $formattedEvents
-//
-//            $query
-//        """.trimIndent()
-////        val prompt = """
-////
-////
-////            Calendar Data:
-////            ${topChunks.joinToString("\n") { "- ${it.text}" }}
-////
-////            prompt:
-////            $query
-////
-////
-////            """.trimIndent()
-//
-//        Log.d("RAG_DEBUG", "Final prompt to LLM:\n$prompt")
-//
-//        return engine.generateSync(prompt)
-//    }
     fun runRAGQuery(query: String, engine: MLCEngine): String {
     Log.d("RAG_DEBUG", "runRAGQuery called with query: $query")
 
@@ -107,7 +77,7 @@ class RagChatModel(private val context: Context) {
 
     Log.d("RAG_DEBUG", "Embedding list size after load: ${embeddingList.size}")
 
-//        val topChunks = retrieveTopK(query, engine, embeddingList, k = 5)
+//    val topChunks = retrieveTopK(query, engine, embeddingList, k = 5)
     val todayChunks = embeddingList.filter { isTodayEvent(it.text) }
     val topChunks = retrieveTopK(query, engine, todayChunks.ifEmpty { embeddingList }, k = 5)
 
@@ -118,49 +88,41 @@ class RagChatModel(private val context: Context) {
     }
 
 //        return relevantContext
+//    val now = ZonedDateTime.now()
+//    val timeOfDay = when (now.hour) {
+//        in 5..11 -> "morning"
+//        12 -> "noon"
+//        in 13..16 -> "afternoon"
+//        in 17..20 -> "evening"
+//        else -> "night"
     val now = ZonedDateTime.now()
-    val dateFormatted = now.toLocalDate()
-    val timeFormatted = now.toLocalTime().withSecond(0).withNano(0)  // cleaner time output
-    val hour = now.hour
-    val timeOfDay = when (hour) {
+    val location = getUserLocation()
+    val timeFormatted = now.toLocalTime().toString()
+    val timeOfDay = when (now.hour) {
         in 5..11 -> "morning"
-        in 12..16 -> "afternoon"
+        12 -> "noon"
+        in 13..16 -> "afternoon"
         in 17..20 -> "evening"
         else -> "night"
     }
+
+    val personalizedPrompt = """
+        [User: $userName | Role: $userRole | Location: $location | TZ: $userTimezone]
+        [Date: ${now.toLocalDate()} | Time: $timeFormatted (${now.zone}) | Part of Day: $timeOfDay]
+    """.trimIndent()
     return """
-        [User: $userName | Role: $userRole | Location: $userLocation | TZ: $userTimezone]
-        [Date: ${now.toLocalDate()} | Time: ${now.toLocalTime().withSecond(0).withNano(0)} (${now.zone}) | Part of Day: $timeOfDay]
+        $personalizedPrompt
         $relevantContext
     """.trimIndent()
 //    return """
 //        [User: $userName | Role: $userRole | Location: $userLocation | TZ: $userTimezone]
+//        [Date: ${now.toLocalDate()} | Time: ${now.toLocalTime().withSecond(0).withNano(0)} (${now.zone}) | Part of Day: $timeOfDay]
 //        $relevantContext
-//
-//
 //    """.trimIndent()
+
 }
 
-    private fun formatEvent(raw: String): String {
-        return try {
-            if (!raw.contains("starts at")) {
-                // No timestamp in this entry, return as-is
-                return raw
-            }
 
-            val inputFormatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss z yyyy", Locale.US)
-            val outputFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy 'at' hh:mm a z", Locale.US)
-
-            val dateStr = raw.substringAfter("starts at ").trim()
-            val parsed = ZonedDateTime.parse(dateStr, inputFormatter)
-
-            val prefix = raw.substringBefore("starts at").trim()
-            "$prefix starts at ${parsed.format(outputFormatter)}"
-        } catch (e: Exception) {
-            Log.e("RAG_FORMAT", "Failed to parse event: $raw", e)
-            raw
-        }
-    }
 
     private fun loadVecFromKGProvider(context: Context): List<EmbeddedText> {
         val uri = Uri.parse("content://com.example.knowledgegraph.kgprovider/knowledge_graph_vec")
@@ -230,6 +192,31 @@ class RagChatModel(private val context: Context) {
             if (item.text.startsWith("User ")) item.text else null
         }.joinToString(". ") + "."
     }
+
+    fun isWithinNext7Days(text: String): Boolean {
+        val now = ZonedDateTime.now()
+        val in7Days = now.plusDays(7)
+
+        return Regex("""\bstarts at\s+(.*)""").find(text)?.groupValues?.get(1)?.let { dateStr ->
+            try {
+                val parsed = ZonedDateTime.parse(dateStr, DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss z yyyy", Locale.US))
+                parsed.isAfter(now) && parsed.isBefore(in7Days)
+            } catch (e: Exception) {
+                false
+            }
+        } ?: false
+    }
+
+    fun isFutureEvent(text: String): Boolean {
+        return Regex("""\bstarts at\s+(.*)""").find(text)?.groupValues?.get(1)?.let { dateStr ->
+            try {
+                val parsed = ZonedDateTime.parse(dateStr, DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss z yyyy", Locale.US))
+                parsed.isAfter(ZonedDateTime.now())
+            } catch (e: Exception) {
+                false
+            }
+        } ?: false
+    }
     private fun retrieveTopK(
         query: String,
         engine: MLCEngine,
@@ -238,22 +225,14 @@ class RagChatModel(private val context: Context) {
     ): List<EmbeddedText> {
         val normalizedQuery = normalizeText(query)
 //        val queryVec = engine.getEmbedding(normalizedQuery) ?: return emptyList()
-//        val userContext = extractUserContextFromVec(embeddingList)
-//
-//        val enrichedQuery = """
-//            User: $userName
-//            Role: $userRole
-//            Time Zone: $userTimezone
-//            Date: ${LocalDate.now()} (${ZonedDateTime.now().zone})
-//
-//            Query: $query
-//        """.trimIndent()
+
         val now = ZonedDateTime.now()
         val location = getUserLocation()
         val timeFormatted = now.toLocalTime().toString()
         val timeOfDay = when (now.hour) {
             in 5..11 -> "morning"
-            in 12..16 -> "afternoon"
+            12 -> "noon"
+            in 13..16 -> "afternoon"
             in 17..20 -> "evening"
             else -> "night"
         }
@@ -277,25 +256,66 @@ class RagChatModel(private val context: Context) {
             val common = queryTokens.intersect(textTokens)
             return common.size.toFloat() / (queryTokens.size + 1e-5f)
         }
+        val filteredData = if (isTimeSensitiveQuery(query)) {
+            data.filter { isFutureEvent(it.text) && isWithinNext7Days(it.text) }
+        } else {
+            data
+        }
 
-        val scoredData = data.map {
+//        val scoredData = data.map {
+//            val cosine = cosineSimilarity(queryVec, it.embedding)
+//            val overlap = phraseOverlapScore(normalizedQuery, it.text)
+//            val finalScore = 0.7f * cosine + 0.3f * overlap
+//            it to finalScore
+//        }
+//
+//        val forcedMatches = data.filter {
+//            normalizedQuery.split(" ").any { word ->
+//                word.length > 3 && it.text.lowercase().contains(word)
+//            }
+//        }
+        fun temporalProximityScore(text: String): Float {
+            return Regex("""\bstarts at\s+(.*)""").find(text)?.groupValues?.get(1)?.let { dateStr ->
+                try {
+                    val now = ZonedDateTime.now()
+                    val eventTime = ZonedDateTime.parse(dateStr, DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss z yyyy", Locale.US))
+                    val hoursUntil = Duration.between(now, eventTime).toHours().toFloat()
+
+                    return when {
+                        hoursUntil <= 0 -> 0f // Past events
+                        hoursUntil <= 2 -> 1.0f
+                        hoursUntil <= 12 -> 0.9f
+                        hoursUntil <= 24 -> 0.75f
+                        hoursUntil <= 48 -> 0.6f
+                        hoursUntil <= 72 -> 0.5f
+                        hoursUntil <= 168 -> 0.4f
+                        else -> 0.1f
+                    }
+                } catch (e: Exception) {
+                    0f
+                }
+            } ?: 0f
+        }
+        val scoredData = filteredData.map {
             val cosine = cosineSimilarity(queryVec, it.embedding)
             val overlap = phraseOverlapScore(normalizedQuery, it.text)
-//            val editDistance = levenshtein(normalizedQuery, normalizeText(it.text))
-//            val maxLen = maxOf(normalizedQuery.length, it.text.length)
-//            val levenshteinScore = 1f - (editDistance.toFloat() / (maxLen + 1e-5f))
-            val finalScore = 0.7f * cosine + 0.3f * overlap
+//            val finalScore = 0.7f * cosine + 0.3f * overlap
 
-//            val finalScore = 0.6f * cosine + 0.3f * overlap + 0.1f * levenshteinScore
-//            Log.d("RAG_SCORE", "Final: $finalScore")
+            val temporal = temporalProximityScore(it.text)
+            val finalScore = if (isTimeSensitiveQuery(query)) {
+                0.6f * cosine + 0.2f * overlap + 0.2f * temporal
+            } else {
+                0.7f * cosine + 0.3f * overlap
+            }
             it to finalScore
         }
 
-        val forcedMatches = data.filter {
+        val forcedMatches = filteredData.filter {
             normalizedQuery.split(" ").any { word ->
                 word.length > 3 && it.text.lowercase().contains(word)
             }
         }
+
 
         val topScored = scoredData
             .filterNot { forcedMatches.contains(it.first) }
@@ -303,15 +323,28 @@ class RagChatModel(private val context: Context) {
             .map { it.first }
             .take((k - forcedMatches.size).coerceAtLeast(0))
 
-        val finalContext = (forcedMatches + topScored).distinctBy { it.text }
-
+//        val finalContext = (forcedMatches + topScored).distinctBy { it.text }
+        val finalContext = (forcedMatches + topScored)
+            .distinctBy { it.text }
+            .sortedBy { extractEventTime(it.text) } // sort chronologically
         finalContext.forEach {
-            //Log.d("RAG_SIMILARITY", "Included in final context: '${it.text}'")
+            Log.d("RAG_SIMILARITY", "Included in final context: '${it.text}'")
         }
 
         return finalContext
     }
-
+    private fun extractEventTime(text: String): ZonedDateTime? {
+        return Regex("""\bstarts at\s+(.*)""")
+            .find(text)
+            ?.groupValues?.get(1)
+            ?.let { dateStr ->
+                try {
+                    ZonedDateTime.parse(dateStr, DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss z yyyy", Locale.US))
+                } catch (e: Exception) {
+                    null
+                }
+            }
+    }
     fun normalizeText(text: String): String {
         return text.lowercase()
             .replace("-", " ")

@@ -860,6 +860,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
                     val combinedPrompt = "$relevantContext\n\n$prompt"
 //                    val combinedPrompt = "$relevantContext"
+//                    Log.d("RAG_PROMPT", "Final prompt passed to engine:\n-----\n$relevantContext\n-----\n$prompt")
                     Log.d("RAG_PROMPT", "Final prompt passed to engine:\n$combinedPrompt")
 
                     content = ChatCompletionMessageContent(text = combinedPrompt)
