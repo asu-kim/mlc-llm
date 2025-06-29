@@ -886,6 +886,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 //                        if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
 //                    }
                     val combinedPrompt = "$knowledgeGraph\n\n$prompt"
+                    Log.d("NON_RAG_PROMPT", "$combinedPrompt")
                     val retrievalEnd = System.currentTimeMillis()
                     Log.d("NON_RAG_TIMING", "Fallback .csv response prep took ${retrievalEnd - retrievalStart}ms")
 
