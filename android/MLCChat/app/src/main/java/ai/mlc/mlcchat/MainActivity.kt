@@ -59,13 +59,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+//    private val requestPermissionLauncher =
+//        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+//            permissions.entries.forEach {
+//                Log.d("Permissions", "${it.key} = ${it.value}")
+//            }
+//        }
+
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             permissions.entries.forEach {
                 Log.d("Permissions", "${it.key} = ${it.value}")
             }
-        }
 
+            if (permissions[Manifest.permission.READ_CALENDAR] == true) {
+                Log.d("Permissions", "READ_CALENDAR granted. You can fetch calendar data now.")
+                val events = CalendarUtils.fetchAllCalendarEvents(this)
+                Log.d("CalendarEvents", events.joinToString("\n"))
+            }
+
+            if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            ) {
+                Log.d("Permissions", "Location permission granted. You can access user location now.")
+                LocationUtils.fetchCurrentLocation(this) { location ->
+                    Log.d("Location", "Current location: $location")
+                }
+            }
+        }
     lateinit var chatState: AppViewModel.ChatState
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -87,9 +108,88 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+//    private fun requestNeededPermissions() {
+//        val permissionsToRequest = mutableListOf<String>()
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//            if (ContextCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.READ_MEDIA_IMAGES
+//                ) != PackageManager.PERMISSION_GRANTED
+//            ) {
+//                permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES)
+//            }
+//            if (ContextCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.CAMERA
+//                ) != PackageManager.PERMISSION_GRANTED
+//            ) {
+//                permissionsToRequest.add(Manifest.permission.CAMERA)
+//            }
+//        } else {
+//            if (ContextCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.READ_EXTERNAL_STORAGE
+//                ) != PackageManager.PERMISSION_GRANTED
+//            ) {
+//                permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+//            }
+//            if (ContextCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+//                ) != PackageManager.PERMISSION_GRANTED
+//            ) {
+//                permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//            }
+//            if (ContextCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.CAMERA
+//                ) != PackageManager.PERMISSION_GRANTED
+//            ) {
+//                permissionsToRequest.add(Manifest.permission.CAMERA)
+//            }
+//            if (ContextCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.ACCESS_FINE_LOCATION
+//                ) != PackageManager.PERMISSION_GRANTED
+//            ) {
+//                permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+//            }
+//
+//            if (ContextCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.ACCESS_COARSE_LOCATION
+//                ) != PackageManager.PERMISSION_GRANTED
+//            ) {
+//                permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+//            }
+//
+//            // Request Calendar permissions
+//            if (ContextCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.READ_CALENDAR
+//                ) != PackageManager.PERMISSION_GRANTED
+//            ) {
+//                permissionsToRequest.add(Manifest.permission.READ_CALENDAR)
+//            }
+//
+//            if (ContextCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.WRITE_CALENDAR
+//                ) != PackageManager.PERMISSION_GRANTED
+//            ) {
+//                permissionsToRequest.add(Manifest.permission.WRITE_CALENDAR)
+//            }
+//        }
+//
+//        if (permissionsToRequest.isNotEmpty()) {
+//            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+//        }
+//    }
     private fun requestNeededPermissions() {
         val permissionsToRequest = mutableListOf<String>()
 
+        // Media and Camera permissions (API-specific)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
@@ -97,13 +197,6 @@ class MainActivity : ComponentActivity() {
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES)
-            }
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.CAMERA
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                permissionsToRequest.add(Manifest.permission.CAMERA)
             }
         } else {
             if (ContextCompat.checkSelfPermission(
@@ -120,20 +213,53 @@ class MainActivity : ComponentActivity() {
             ) {
                 permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.CAMERA
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                permissionsToRequest.add(Manifest.permission.CAMERA)
-            }
+        }
+
+        // These permissions should be requested regardless of SDK version
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.CAMERA)
+        }
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_CALENDAR
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.READ_CALENDAR)
+        }
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.WRITE_CALENDAR
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.WRITE_CALENDAR)
         }
 
         if (permissionsToRequest.isNotEmpty()) {
             requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
     }
-
     fun pickImageFromGallery() {
         pickImageLauncher.launch("image/*")
     }

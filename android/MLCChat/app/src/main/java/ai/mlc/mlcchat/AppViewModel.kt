@@ -25,6 +25,7 @@ import kotlin.concurrent.thread
 import ai.mlc.mlcllm.OpenAIProtocol.ChatCompletionMessage
 import ai.mlc.mlcllm.OpenAIProtocol.ChatCompletionMessageContent
 import android.app.Activity
+import android.content.pm.PackageManager
 import kotlinx.coroutines.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -32,6 +33,10 @@ import android.net.Uri
 import java.io.ByteArrayOutputStream
 import android.util.Base64
 import android.util.Log
+import androidx.core.content.ContextCompat
+import java.util.jar.Manifest
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     val modelList = emptyList<ModelState>().toMutableStateList()
@@ -700,7 +705,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             switchToGenerating()
             appendMessage(MessageRole.User, prompt)
             appendMessage(MessageRole.Assistant, "")
-            var content = ChatCompletionMessageContent(text=prompt)
+//            var content = ChatCompletionMessageContent(text=prompt)
+
+            val calendarEvents = CalendarUtils.fetchAllCalendarEvents(activity)
+            val contextText = if (calendarEvents.isNotEmpty())
+                "Upcoming calendar events:\n" + calendarEvents.joinToString("\n") + "\n\n"
+            else
+                ""
+
+            val enrichedPrompt = contextText + prompt
+            Log.d("CALENDAR_PROMPT", "Calendar prompt: $enrichedPrompt")
+            var content = ChatCompletionMessageContent(text = enrichedPrompt)
             if (imageUri != null) {
                 val uri = imageUri
                 val bitmap = uri?.let {
@@ -724,47 +739,160 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     content = content
                 ))
 
+//                viewModelScope.launch {
+//                    val responses = engine.chat.completions.create(
+//                        messages = historyMessages,
+//                        stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+//                    )
+//
+//                    var finishReasonLength = false
+//                    var streamingText = ""
+//
+//                    for (res in responses) {
+//                        if (!callBackend {
+//                            for (choice in res.choices) {
+//                                choice.delta.content?.let { content ->
+//                                    streamingText += content.asText()
+//                                }
+//                                choice.finish_reason?.let { finishReason ->
+//                                    if (finishReason == "length") {
+//                                        finishReasonLength = true
+//                                    }
+//                                }
+//                            }
+//                            updateMessage(MessageRole.Assistant, streamingText)
+//                            res.usage?.let { finalUsage ->
+//                                report.value = finalUsage.extra?.asTextLabel() ?: ""
+//                            }
+//                            if (finishReasonLength) {
+//                                streamingText += " [output truncated due to context length limit...]"
+//                                updateMessage(MessageRole.Assistant, streamingText)
+//                            }
+//                        });
+//                    }
+//                    if (streamingText.isNotEmpty()) {
+//                        historyMessages.add(ChatCompletionMessage(
+//                            role = OpenAIProtocol.ChatCompletionRole.assistant,
+//                            content = streamingText
+//                        ))
+//                        streamingText = ""
+//                    } else {
+//                        if (historyMessages.isNotEmpty()) {
+//                            historyMessages.removeAt(historyMessages.size - 1)
+//                        }
+//                    }
+//
+//                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
+//                    try {
+//
+//                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
+//
+//                        // Check if file is new and add header
+//                        if (!logFile.exists()) {
+//                            logFile.writeText("prompt,answers\n")
+//                        }
+//
+//                        // Format the row as CSV
+//                        val promptClean = prompt.trim().replace(",", ";") // Avoid breaking CSV
+//                        val answerClean = streamingText.trim().replace(",", ";") // Avoid breaking CSV
+//
+//                        val logEntry = "$promptClean,\"[$answerClean]\""
+//
+//                        // Append row to file
+//                        logFile.appendText(logEntry + "\n")
+//
+//                        Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
+//
+//                    } catch (e: Exception) {
+//                        Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
+//                    }
+//                }
+
+
                 viewModelScope.launch {
-                    val responses = engine.chat.completions.create(
-                        messages = historyMessages,
-                        stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
-                    )
-
-                    var finishReasonLength = false
                     var streamingText = ""
+                    var finishReasonLength = false
 
-                    for (res in responses) {
-                        if (!callBackend {
-                            for (choice in res.choices) {
-                                choice.delta.content?.let { content ->
-                                    streamingText += content.asText()
-                                }
-                                choice.finish_reason?.let { finishReason ->
-                                    if (finishReason == "length") {
-                                        finishReasonLength = true
+                    try {
+                        withTimeout(3 * 60 * 1000L) { // 3 minutes timeout
+                            val responses = engine.chat.completions.create(
+                                messages = historyMessages,
+                                stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+                            )
+
+                            for (res in responses) {
+                                if (!callBackend {
+                                        for (choice in res.choices) {
+                                            choice.delta.content?.let { content ->
+                                                streamingText += content.asText()
+                                            }
+                                            choice.finish_reason?.let { finishReason ->
+                                                if (finishReason == "length") {
+                                                    finishReasonLength = true
+                                                }
+                                            }
+                                        }
+                                        updateMessage(MessageRole.Assistant, streamingText)
+                                        res.usage?.let { finalUsage ->
+                                            report.value = finalUsage.extra?.asTextLabel() ?: ""
+                                        }
+                                        if (finishReasonLength) {
+                                            streamingText += " [output truncated due to context length limit...]"
+                                            updateMessage(MessageRole.Assistant, streamingText)
+                                        }
                                     }
+                                ) {
+                                    Log.e("GENERATION", "callBackend failed for response chunk.")
                                 }
                             }
-                            updateMessage(MessageRole.Assistant, streamingText)
-                            res.usage?.let { finalUsage ->
-                                report.value = finalUsage.extra?.asTextLabel() ?: ""
-                            }
-                            if (finishReasonLength) {
-                                streamingText += " [output truncated due to context length limit...]"
-                                updateMessage(MessageRole.Assistant, streamingText)
-                            }
-                        });
+                        }
+                    } catch (e: TimeoutCancellationException) {
+                        Log.e("TIMEOUT", "Model took longer than 3 minutes.")
+                        updateMessage(MessageRole.Assistant, "[ERROR: Model response timed out after 3 minutes.]")
+
+                        // Log timeout to CSV
+                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
+                        if (!logFile.exists()) {
+                            logFile.writeText("prompt,answers\n")
+                        }
+                        val promptClean = prompt.trim().replace(",", ";")
+                        val logEntry = "$promptClean,\"[ERROR: Model timeout]\""
+                        logFile.appendText(logEntry + "\n")
+
+                        // Cleanup state
+                        if (modelChatState.value == ModelChatState.Generating) switchToReady()
+                        return@launch
+                    } catch (e: Exception) {
+                        Log.e("GENERATION", "Unexpected error: ${e.message}")
                     }
+
+                    // Normal response logging if no timeout
                     if (streamingText.isNotEmpty()) {
-                        historyMessages.add(ChatCompletionMessage(
-                            role = OpenAIProtocol.ChatCompletionRole.assistant,
-                            content = streamingText
-                        ))
-                        streamingText = ""
+                        historyMessages.add(
+                            ChatCompletionMessage(
+                                role = OpenAIProtocol.ChatCompletionRole.assistant,
+                                content = streamingText
+                            )
+                        )
                     } else {
                         if (historyMessages.isNotEmpty()) {
                             historyMessages.removeAt(historyMessages.size - 1)
                         }
+                    }
+
+                    try {
+                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
+                        if (!logFile.exists()) {
+                            logFile.writeText("prompt,answers\n")
+                        }
+
+                        val promptClean = prompt.trim().replace(",", ";")
+                        val answerClean = streamingText.trim().replace(",", ";")
+                        val logEntry = "$promptClean,\"[$answerClean]\""
+                        logFile.appendText(logEntry + "\n")
+                        Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
+                    } catch (e: Exception) {
+                        Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
                     }
 
                     if (modelChatState.value == ModelChatState.Generating) switchToReady()
