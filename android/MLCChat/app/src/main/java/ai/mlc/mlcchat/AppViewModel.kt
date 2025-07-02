@@ -38,6 +38,9 @@ import android.provider.Settings
 import ai.mlc.mlcllm.generateSync
 import ai.mlc.mlcllm.getEmbedding
 
+import java.text.SimpleDateFormat
+import java.util.Date
+
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     val modelList = emptyList<ModelState>().toMutableStateList()
     val chatState = ChatState()
@@ -52,6 +55,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val appDirFile = application.getExternalFilesDir("")
     private val gson = Gson()
     private val modelIdSet = emptySet<String>().toMutableSet()
+
+
 
     companion object {
         const val AppConfigFilename = "mlc-app-config.json"
@@ -835,6 +840,142 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 //                }
 //            }.start()
 //        }
+        val batchPrompts = listOf(
+//            "When is my Advanced Data Structures?",
+//            "When is my Advanced Physics?",
+//            "When is my AI Ethics Lecture?",
+//            "When is my Art History?",
+//            "When is my Astrophysics Seminar?",
+//            "When is my Beach Day with Friends?",
+//            "When is my Big Data Analytics?",
+//            "When does my Breakfast start?",
+//            "When is my Catch-up with Friends?",
+//            "When is my Chemistry Seminar?",
+//            "When is my Christmas?",
+//            "When is my Christmas Celebration?",
+//            "When is my Client Call?",
+//            "When is my Client Feedback Session?",
+//            "When are my Client Kickoff Meetings?",
+//            "When is my Client Presentation?",
+//            "When is my Client Presentation Preparation?",
+//            "When is my Client Workshop?",
+//            "When is my Cloud Computing Basics?",
+//            "When is my Computer Science Workshop?",
+//            "When is my Data Science Fundamentals?",
+//            "When are my Department Meetings?",
+//            "When is my Design Review?",
+//            "When is my Design Workshop?",
+//            "When is my Dinner?",
+//            "When is my Diwali?",
+//            "When is my Dussehra?",
+//            "When is my Environmental Chemistry?",
+//            "When do I have my Evening Walk?",
+//            "When is my Family BBQ?",
+//            "When is my Dinner?",
+//            "When is my Family Game Night?",
+//            "When is my Family Movie Night?",
+//            "When is my Family Outing?",
+//            "When is my Family Picnic?",
+//            "When is my Family Time?",
+//            "When is my Friends' Game Night?",
+//            "When is my Game Night?",
+//            "When is my Ganesh Chaturthi?",
+//            "When is my Hiking Trip?",
+//            "When is my History Lecture?",
+//            "When is my Holiday Party?",
+//            "When is my Holiday Party with Friends?",
+//            "When is my Holiday Preparations?",
+//            "When is my Inorganic Chemistry Lab?",
+//            "When is my Introduction to AI?",
+//            "When is my Lunch?",
+//            "When is my Machine Learning Workshop?",
+//            "When are my Marketing Strategy Meetings?",
+//            "When is my Math Lecture?",
+//            "When is my Meditation?",
+//            "When is my Modern History Lecture?",
+//            "When are my Monthly Kickoff Meetings?",
+//            "When are my Monthly Review Meetings?",
+//            "When is my Morning Exercise?",
+//            "When is my Morning Jog?",
+//            "When do I have my Morning Run?",
+//            "When do I have my Morning Walk?",
+//            "When is my Morning Yoga?",
+//            "When is my Neural Networks Introduction?",
+//            "When is my New Year's Eve?",
+//            "When are my One-on-One Meetings?",
+//            "When is my Organic Chemistry Lab?",
+//            "When is my Philosophy of Science?",
+//            "When is my Physical Chemistry?",
+//            "When is my Physics Lab?",
+//            "When is my Planning Next Day?",
+//            "When is my Product Demo?",
+//            "When are my Product Development Meetings?",
+//            "When are my Product Launch Meetings?",
+//            "When is my Programming in Python?",
+//            "When is my Project Kickoff?",
+//            "When are my Project Kickoff Meetings?",
+//            "When is my Quantum Mechanics Workshop?",
+//            "When is my Raksha Bandhan?",
+//            "When is my Reading Time?",
+//            "When are my Retrospective Meetings?",
+//            "When are my Stand-up Meetings?",
+//            "When is my Team Building Activity?",
+//            "When are my Team Meetings?",
+//            "When is my Team Sync?",
+            "When is my Visit to Aunt's House?",
+            "When is my Visit to Grandparents?",
+            "When is my Weekly Sync-Up?",
+            "When is my Weekly Team Standup?",
+            "When is my Work Session?",
+            "When is my World History Lecture?",
+            "When is my Year-End Review?"
+        )
+        var isGenerating = false
+
+        fun batchGenerate(activity: Activity) {
+            viewModelScope.launch {
+                for (prompt in batchPrompts) {
+                    isGenerating = true
+                    requestGenerate(prompt, activity)
+
+                    // Wait until generation is done
+                    while (isGenerating) {
+                        delay(1000)  // Check every 1 second
+                    }
+                }
+            }
+        }
+        fun enrichPrompt(
+            prompt: String,
+            activity: Activity,
+            useRAG: Boolean,
+            ragModel: RagChatModel?,
+            engine: MLCEngine
+        ): String {
+            val header = ragModel?.getUserHeader() ?: ""
+
+            return if (useRAG) {
+                val context = ragModel?.runRAGQuery(prompt, engine) ?: ""
+                "$context\n\n$prompt"
+            } else {
+                val kgText = loadKGFromProvider(activity)
+                val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
+
+                val relevantLines = keywords.flatMap { keyword ->
+                    val regex = Regex("\\b${Regex.escape(keyword.lowercase())}\\b")
+                    kgText.lines().filter { line ->
+                        regex.containsMatchIn(line.lowercase().replace("\"", ""))
+                    }
+                }
+
+                val knowledgeGraph = relevantLines.joinToString("\n") {
+                    val parts = it.split(",")
+                    if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
+                }
+
+                "$header\n$knowledgeGraph\n\n$prompt"
+            }
+        }
         fun requestGenerate(prompt: String, activity: Activity) {
             require(chatable())
             switchToGenerating()
@@ -844,55 +985,73 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             Thread {
                 val content: ChatCompletionMessageContent
 
-                if (useRAG.value) {
-                    val rag = ragModel
-                    if (rag == null) {
-                        Log.e("RAG", "RAG model not initialized, skipping RAG response.")
-                        appendMessage(MessageRole.Assistant, "Sorry, the RAG model is not ready yet.")
-                        switchToReady()
-                        return@Thread
-                    }
-
-                    val retrievalStart = System.currentTimeMillis()
-                    val relevantContext = rag.runRAGQuery(prompt, engine)
-                    val retrievalEnd = System.currentTimeMillis()
-                    Log.d("RAG_TIMING", "RAG retrieval took ${retrievalEnd - retrievalStart}ms")
-
-                    val combinedPrompt = "$relevantContext\n\n$prompt"
-//                    val combinedPrompt = "$relevantContext"
-//                    Log.d("RAG_PROMPT", "Final prompt passed to engine:\n-----\n$relevantContext\n-----\n$prompt")
-                    Log.d("RAG_PROMPT", "Final prompt passed to engine:\n$combinedPrompt")
-
-                    content = ChatCompletionMessageContent(text = combinedPrompt)
-                } else {
-                    val retrievalStart = System.currentTimeMillis()
-                    val kgText = loadKGFromProvider(activity)
-                    val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
-
-                    val relevantLines = keywords.flatMap { keyword ->
-                        val regex = Regex("\\b${Regex.escape(keyword.lowercase())}\\b")
-                        kgText.lines().filter { line ->
-                            regex.containsMatchIn(line.lowercase().replace("\"", ""))
-                        }
-                    }
-
-                    val knowledgeGraph = relevantLines.joinToString("\n") {
-                        val parts = it.split(",")
-                        if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
-                    }
-
-//                    val knowledgeGraph = kgText.lines().joinToString("\n") {
+//                if (useRAG.value) {
+//                    val rag = ragModel
+//                    if (rag == null) {
+//                        Log.e("RAG", "RAG model not initialized, skipping RAG response.")
+//                        appendMessage(MessageRole.Assistant, "Sorry, the RAG model is not ready yet.")
+//                        switchToReady()
+//                        return@Thread
+//                    }
+//
+//                    val retrievalStart = System.currentTimeMillis()
+//                    val relevantContext = rag.runRAGQuery(prompt, engine)
+//                    val retrievalEnd = System.currentTimeMillis()
+//                    Log.d("RAG_TIMING", "RAG retrieval took ${retrievalEnd - retrievalStart}ms")
+//                    try {
+//                        val logFile = File(activity.getExternalFilesDir(null), "retrieval_log.txt")
+//                        val logEntry = "RAG | ${prompt.trim()} | ${retrievalEnd - retrievalStart}ms\n"
+//                        logFile.appendText(logEntry)
+//                    } catch (e: Exception) {
+//                        Log.e("RETRIEVAL_LOG", "Failed to log RAG retrieval time: ${e.message}")
+//                    }
+//                    val combinedPrompt = "$relevantContext\n\n$prompt"
+////                    val combinedPrompt = "$relevantContext"
+////                    Log.d("RAG_PROMPT", "Final prompt passed to engine:\n-----\n$relevantContext\n-----\n$prompt")
+//                    Log.d("RAG_PROMPT", "Final prompt passed to engine:\n$combinedPrompt")
+//
+//                    content = ChatCompletionMessageContent(text = combinedPrompt)
+//                } else {
+//                    val retrievalStart = System.currentTimeMillis()
+//                    val kgText = loadKGFromProvider(activity)
+//                    val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
+//
+//                    val relevantLines = keywords.flatMap { keyword ->
+//                        val regex = Regex("\\b${Regex.escape(keyword.lowercase())}\\b")
+//                        kgText.lines().filter { line ->
+//                            regex.containsMatchIn(line.lowercase().replace("\"", ""))
+//                        }
+//                    }
+//
+//                    val knowledgeGraph = relevantLines.joinToString("\n") {
 //                        val parts = it.split(",")
 //                        if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
 //                    }
-                    val combinedPrompt = "$knowledgeGraph\n\n$prompt"
-                    Log.d("NON_RAG_PROMPT", "$combinedPrompt")
-                    val retrievalEnd = System.currentTimeMillis()
-                    Log.d("NON_RAG_TIMING", "Fallback .csv response prep took ${retrievalEnd - retrievalStart}ms")
-
-                    content = ChatCompletionMessageContent(text = combinedPrompt)
-                }
-
+//
+////                    val knowledgeGraph = kgText.lines().joinToString("\n") {
+////                        val parts = it.split(",")
+////                        if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
+////                    }
+//                    val combinedPrompt = "$knowledgeGraph\n\n$prompt"
+//                    Log.d("NON_RAG_PROMPT", "$combinedPrompt")
+//                    val retrievalEnd = System.currentTimeMillis()
+//                    Log.d("NON_RAG_TIMING", "Fallback .csv response prep took ${retrievalEnd - retrievalStart}ms")
+//                    try {
+//                        val logFile = File(activity.getExternalFilesDir(null), "retrieval_log.txt")
+//                        val logEntry = "non-RAG | ${prompt.trim()} | ${retrievalEnd - retrievalStart}ms\n"
+//                        logFile.appendText(logEntry)
+//                    } catch (e: Exception) {
+//                        Log.e("RETRIEVAL_LOG", "Failed to log non-RAG retrieval time: ${e.message}")
+//                    }
+//                    content = ChatCompletionMessageContent(text = combinedPrompt)
+//                }
+                val retrievalStart = System.currentTimeMillis()
+                val combinedPrompt = enrichPrompt(prompt, activity, useRAG.value, ragModel, engine)
+                val retrievalEnd = System.currentTimeMillis()
+                Log.d("ENRICHED_PROMPT", combinedPrompt)
+                Log.d("RETRIEVAL_TIME", "${if (useRAG.value) "RAG" else "non-RAG"} retrieval took ${retrievalEnd - retrievalStart}ms")
+                content = ChatCompletionMessageContent(text = combinedPrompt)
+                // added for automation
 
                 executorService.submit {
                     val totalStartTime = System.currentTimeMillis()
@@ -949,14 +1108,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         // Logging
                         try {
-//                            val logFile = File(activity.getExternalFilesDir(null), "eval_log.txt")
-//                            val logEntry = """
-//                                        1. prompt (${prompt.trim()})
-//                                        ans (${streamingText.trim()})
-//
-//                                    """.trimIndent()
-//                            logFile.appendText(logEntry + "\n")
-//                            Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
+
                             val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
 
                             // Check if file is new and add header
@@ -978,12 +1130,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         } catch (e: Exception) {
                             Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
                         }
+
                         if (modelChatState.value == ModelChatState.Generating) switchToReady()
+                        isGenerating = false
                         val generationEndTime = System.currentTimeMillis()
                         val generationDuration = generationEndTime - generationStartTime
                         val totalDuration = generationEndTime - totalStartTime
 
                         val mode = if (useRAG.value) "RAG" else "non-RAG"
+                        try {
+                            val csvFile = File(activity.getExternalFilesDir(null), "response_log.csv")
+                            val isNewFile = !csvFile.exists()
+
+                            // Write header if file is new
+                            if (isNewFile) {
+                                csvFile.writeText("Mode,Prompt,Response(ms),Generation(ms),Total(ms),Timestamp\n")
+                            }
+
+                            val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(java.util.Date())
+                            val promptClean = prompt.trim().replace("\"", "\"\"").replace("\n", " ") // Escape quotes and newlines
+
+                            val csvLine = "\"$mode\",\"$promptClean\",${retrievalEnd - retrievalStart},$generationDuration,$totalDuration,$timestamp\n"
+                            csvFile.appendText(csvLine)
+
+                            Log.d("RESPONSE_CSV", "Logged response time to CSV: $csvLine")
+                        } catch (e: Exception) {
+                            Log.e("RESPONSE_CSV", "Failed to write response log: ${e.message}")
+                        }
                         Log.d("GENERATION_TIMING", "$mode model generation took ${generationDuration}ms")
                         Log.d("TOTAL_LATENCY", "$mode total response time: ${totalDuration}ms")
                     }
@@ -1009,15 +1182,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     || modelChatState.value == ModelChatState.Generating
                     || modelChatState.value == ModelChatState.Falied
         }
-        fun testEmbeddingExtraction(text: String) {
-            val embedding = engine.getEmbedding(text)
-            if (embedding != null) {
-                Log.d("MLC_Embedding", "Embedding size: ${embedding.size}")
-                Log.d("MLC_Embedding", "First 5 values: ${embedding.take(5)}")
-            } else {
-                Log.e("MLC_Embedding", "Failed to generate embedding for: $text")
-            }
-        }
+//        fun testEmbeddingExtraction(text: String) {
+//            val embedding = engine.getEmbedding(text)
+//            if (embedding != null) {
+//                Log.d("MLC_Embedding", "Embedding size: ${embedding.size}")
+//                Log.d("MLC_Embedding", "First 5 values: ${embedding.take(5)}")
+//            } else {
+//                Log.e("MLC_Embedding", "Failed to generate embedding for: $text")
+//            }
+//        }
     }
 }
 

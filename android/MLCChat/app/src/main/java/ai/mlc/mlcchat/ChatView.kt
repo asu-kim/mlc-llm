@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Divider
@@ -68,6 +69,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 @ExperimentalMaterial3Api
@@ -90,6 +94,7 @@ fun ChatView(
             timezone = "MST"
         )
     }
+
     Scaffold(topBar = {
         TopAppBar(
             title = {
@@ -401,6 +406,20 @@ fun SendMessageView(chatState: AppViewModel.ChatState, activity: Activity) {
             Icon(
                 imageVector = Icons.Filled.Send,
                 contentDescription = "send message",
+            )
+        }
+        IconButton(
+            onClick = {
+                chatState.batchGenerate(activity)
+            },
+            modifier = Modifier
+                .aspectRatio(1f)
+                .weight(1f),
+            enabled = chatState.chatable()
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PlayArrow,
+                contentDescription = "Run batch prompts",
             )
         }
     }

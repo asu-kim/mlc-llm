@@ -87,14 +87,7 @@ class RagChatModel(private val context: Context) {
         it.text.trim().let { line -> if (!line.endsWith(".")) "$line." else line }
     }
 
-//        return relevantContext
-//    val now = ZonedDateTime.now()
-//    val timeOfDay = when (now.hour) {
-//        in 5..11 -> "morning"
-//        12 -> "noon"
-//        in 13..16 -> "afternoon"
-//        in 17..20 -> "evening"
-//        else -> "night"
+
     val now = ZonedDateTime.now()
     val location = getUserLocation()
     val timeFormatted = now.toLocalTime().toString()
@@ -114,15 +107,25 @@ class RagChatModel(private val context: Context) {
         $personalizedPrompt
         $relevantContext
     """.trimIndent()
-//    return """
-//        [User: $userName | Role: $userRole | Location: $userLocation | TZ: $userTimezone]
-//        [Date: ${now.toLocalDate()} | Time: ${now.toLocalTime().withSecond(0).withNano(0)} (${now.zone}) | Part of Day: $timeOfDay]
-//        $relevantContext
-//    """.trimIndent()
 
 }
 
+    fun getUserHeader(): String {
+        val now = ZonedDateTime.now()
+        val timeFormatted = now.toLocalTime().toString()
+        val timeOfDay = when (now.hour) {
+            in 5..11 -> "morning"
+            12 -> "noon"
+            in 13..16 -> "afternoon"
+            in 17..20 -> "evening"
+            else -> "night"
+        }
 
+        return """
+        [User: $userName | Role: $userRole | Location: $userLocation | TZ: $userTimezone]
+        [Date: ${now.toLocalDate()} | Time: $timeFormatted (${now.zone}) | Part of Day: $timeOfDay]
+    """.trimIndent()
+    }
 
     private fun loadVecFromKGProvider(context: Context): List<EmbeddedText> {
         val uri = Uri.parse("content://com.example.knowledgegraph.kgprovider/knowledge_graph_vec")
@@ -262,18 +265,6 @@ class RagChatModel(private val context: Context) {
             data
         }
 
-//        val scoredData = data.map {
-//            val cosine = cosineSimilarity(queryVec, it.embedding)
-//            val overlap = phraseOverlapScore(normalizedQuery, it.text)
-//            val finalScore = 0.7f * cosine + 0.3f * overlap
-//            it to finalScore
-//        }
-//
-//        val forcedMatches = data.filter {
-//            normalizedQuery.split(" ").any { word ->
-//                word.length > 3 && it.text.lowercase().contains(word)
-//            }
-//        }
         fun temporalProximityScore(text: String): Float {
             return Regex("""\bstarts at\s+(.*)""").find(text)?.groupValues?.get(1)?.let { dateStr ->
                 try {
@@ -307,10 +298,11 @@ class RagChatModel(private val context: Context) {
             } else {
                 0.7f * cosine + 0.3f * overlap
             }
+
             it to finalScore
         }
 
-        val forcedMatches = filteredData.filter {
+        val keywordMatches = filteredData.filter {
             normalizedQuery.split(" ").any { word ->
                 word.length > 3 && it.text.lowercase().contains(word)
             }
@@ -318,13 +310,13 @@ class RagChatModel(private val context: Context) {
 
 
         val topScored = scoredData
-            .filterNot { forcedMatches.contains(it.first) }
+            .filterNot { keywordMatches.contains(it.first) }
             .sortedByDescending { it.second }
             .map { it.first }
-            .take((k - forcedMatches.size).coerceAtLeast(0))
+            .take((k - keywordMatches.size).coerceAtLeast(0))
 
-//        val finalContext = (forcedMatches + topScored).distinctBy { it.text }
-        val finalContext = (forcedMatches + topScored)
+//        val finalContext = (forcedMatches + topScored).distinctBy { it.text } val finalContext = (forcedMatches + topScored)
+        val finalContext = (keywordMatches + topScored)
             .distinctBy { it.text }
             .sortedBy { extractEventTime(it.text) } // sort chronologically
         finalContext.forEach {
