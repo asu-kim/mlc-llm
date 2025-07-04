@@ -89,8 +89,8 @@ fun ChatView(
     (activity as MainActivity).chatState = chatState
     LaunchedEffect(Unit) {
         ragModel.setUserProfile(
-            name = "Deeksha Prahlad",
-            role = "PhD student in computer science",
+            name = "Alice",
+            role = "Student in computer science",
             timezone = "MST"
         )
     }

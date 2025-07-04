@@ -40,6 +40,9 @@ import ai.mlc.mlcllm.getEmbedding
 
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     val modelList = emptyList<ModelState>().toMutableStateList()
@@ -730,205 +733,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
             return builder.toString()
         }
-        //        fun requestGenerate(prompt: String, activity: Activity) {
-//            require(chatable())
-//            switchToGenerating()
-//            appendMessage(MessageRole.User, prompt)
-//
-//            appendMessage(MessageRole.Assistant, "")
-//
-//            Thread {
-//
-//                val kgText = loadKGFromProvider(activity)
-//                // Extract all keywords from the prompt (words without punctuation)
-//                val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
-//
-//                // Filter only lines that contain any keyword, and take the first 15
-////                val relevantLines = kgText.lines()
-////                    .filter { line ->
-////                        keywords.any { keyword -> line.contains(keyword, ignoreCase = true) }
-////                    }
-////                    .take(15)
-//                val relevantLines = keywords.flatMap { keyword ->
-//                    val regex = Regex("\\b${Regex.escape(keyword.lowercase())}\\b")
-//                    kgText.lines().filter { line ->
-//                        regex.containsMatchIn(line.lowercase().replace("\"", ""))
-//                    }
-//                }
-//
-//                // Convert relevant CSV lines into readable sentences
-//                //val knowledgeGraph = relevantLines.joinToString("\n")
-//                val knowledgeGraph = relevantLines.joinToString("\n") {
-//                    val parts = it.split(",")
-//                    if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
-//                }
-//                Log.d("MLCChat", "Filtered KG:\n$knowledgeGraph")
-//                // Combine with user question
-//                val combinedPrompt = "$knowledgeGraph\n\n$prompt"
-//                var content = ChatCompletionMessageContent(text = combinedPrompt)
-//
-//                // Handle image if available
-//                if (imageUri != null) {
-//                    val uri = imageUri
-//                    val bitmap = uri?.let {
-//                        activity.contentResolver.openInputStream(it)?.use { input ->
-//                            BitmapFactory.decodeStream(input)
-//                        }
-//                    }
-//                    val imageBase64URL = bitmapToURL(bitmap!!)
-//                    val parts = listOf(
-//                        mapOf("type" to "text", "text" to prompt),
-//                        mapOf("type" to "image_url", "image_url" to imageBase64URL)
-//                    )
-//                    content = ChatCompletionMessageContent(parts = parts)
-//                    imageUri = null
-//                }
-//
-//                // Launch inference inside executor
-//                executorService.submit {
-//                    testEmbeddingExtraction(prompt)
-//                    historyMessages.add(ChatCompletionMessage(
-//                        role = OpenAIProtocol.ChatCompletionRole.user,
-//                        content = content
-//                    ))
-//
-//                    viewModelScope.launch {
-//                        val responses = engine.chat.completions.create(
-//                            messages = historyMessages,
-//                            stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
-//                        )
-//
-//                        var finishReasonLength = false
-//                        var streamingText = ""
-//
-//                        for (res in responses) {
-//                            if (!callBackend {
-//                                    for (choice in res.choices) {
-//                                        choice.delta.content?.let { content ->
-//                                            streamingText += content.asText()
-//                                        }
-//                                        choice.finish_reason?.let { finishReason ->
-//                                            if (finishReason == "length") {
-//                                                finishReasonLength = true
-//                                            }
-//                                        }
-//                                    }
-//                                    updateMessage(MessageRole.Assistant, streamingText)
-//                                    res.usage?.let { finalUsage ->
-//                                        report.value = finalUsage.extra?.asTextLabel() ?: ""
-//                                    }
-//                                    if (finishReasonLength) {
-//                                        streamingText += " [output truncated due to context length limit...]"
-//                                        updateMessage(MessageRole.Assistant, streamingText)
-//                                    }
-//                                });
-//                        }
-//
-//                        if (streamingText.isNotEmpty()) {
-//                            historyMessages.add(ChatCompletionMessage(
-//                                role = OpenAIProtocol.ChatCompletionRole.assistant,
-//                                content = streamingText
-//                            ))
-//                        } else {
-//                            if (historyMessages.isNotEmpty()) {
-//                                historyMessages.removeAt(historyMessages.size - 1)
-//                            }
-//                        }
-//
-//                        if (modelChatState.value == ModelChatState.Generating) switchToReady()
-//                    }
-//                }
-//            }.start()
-//        }
+
         val batchPrompts = listOf(
-//            "When is my Advanced Data Structures?",
-//            "When is my Advanced Physics?",
-//            "When is my AI Ethics Lecture?",
-//            "When is my Art History?",
-//            "When is my Astrophysics Seminar?",
-//            "When is my Beach Day with Friends?",
-//            "When is my Big Data Analytics?",
-//            "When does my Breakfast start?",
-//            "When is my Catch-up with Friends?",
-//            "When is my Chemistry Seminar?",
-//            "When is my Christmas?",
-//            "When is my Christmas Celebration?",
-//            "When is my Client Call?",
-//            "When is my Client Feedback Session?",
-//            "When are my Client Kickoff Meetings?",
-//            "When is my Client Presentation?",
-//            "When is my Client Presentation Preparation?",
-//            "When is my Client Workshop?",
-//            "When is my Cloud Computing Basics?",
-//            "When is my Computer Science Workshop?",
-//            "When is my Data Science Fundamentals?",
-//            "When are my Department Meetings?",
-//            "When is my Design Review?",
-//            "When is my Design Workshop?",
-//            "When is my Dinner?",
-//            "When is my Diwali?",
-//            "When is my Dussehra?",
-//            "When is my Environmental Chemistry?",
-//            "When do I have my Evening Walk?",
-//            "When is my Family BBQ?",
-//            "When is my Dinner?",
-//            "When is my Family Game Night?",
-//            "When is my Family Movie Night?",
-//            "When is my Family Outing?",
-//            "When is my Family Picnic?",
-//            "When is my Family Time?",
-//            "When is my Friends' Game Night?",
-//            "When is my Game Night?",
-//            "When is my Ganesh Chaturthi?",
-//            "When is my Hiking Trip?",
-//            "When is my History Lecture?",
-//            "When is my Holiday Party?",
-//            "When is my Holiday Party with Friends?",
-//            "When is my Holiday Preparations?",
-//            "When is my Inorganic Chemistry Lab?",
-//            "When is my Introduction to AI?",
-//            "When is my Lunch?",
-//            "When is my Machine Learning Workshop?",
-//            "When are my Marketing Strategy Meetings?",
-//            "When is my Math Lecture?",
-//            "When is my Meditation?",
-//            "When is my Modern History Lecture?",
-//            "When are my Monthly Kickoff Meetings?",
-//            "When are my Monthly Review Meetings?",
-//            "When is my Morning Exercise?",
-//            "When is my Morning Jog?",
-//            "When do I have my Morning Run?",
-//            "When do I have my Morning Walk?",
-//            "When is my Morning Yoga?",
-//            "When is my Neural Networks Introduction?",
-//            "When is my New Year's Eve?",
-//            "When are my One-on-One Meetings?",
-//            "When is my Organic Chemistry Lab?",
-//            "When is my Philosophy of Science?",
-//            "When is my Physical Chemistry?",
-//            "When is my Physics Lab?",
-//            "When is my Planning Next Day?",
-//            "When is my Product Demo?",
-//            "When are my Product Development Meetings?",
-//            "When are my Product Launch Meetings?",
-//            "When is my Programming in Python?",
-//            "When is my Project Kickoff?",
-//            "When are my Project Kickoff Meetings?",
-//            "When is my Quantum Mechanics Workshop?",
-//            "When is my Raksha Bandhan?",
-//            "When is my Reading Time?",
-//            "When are my Retrospective Meetings?",
-//            "When are my Stand-up Meetings?",
-//            "When is my Team Building Activity?",
-//            "When are my Team Meetings?",
-//            "When is my Team Sync?",
-            "When is my Visit to Aunt's House?",
-            "When is my Visit to Grandparents?",
-            "When is my Weekly Sync-Up?",
-            "When is my Weekly Team Standup?",
-            "When is my Work Session?",
-            "When is my World History Lecture?",
-            "When is my Year-End Review?"
+//            "When is my next Weekly Meeting (test)?",
+//            "When is my next Family Movie Night?",
+//            "When is my next Lunch Break?",
+//            "When is my next Work Session?",
+//            "When is my next Planning Next Day session?",
+//            "When is my next Product Demo?",
+//            "When is my next One-on-One Meeting?",
+//            "When is my next Family Dinner?",
+//            "When is my next Breakfast?",
+            "When is my next Design Review?",
+            "When is my next Team Sync?",
+            "When is my next Client Presentation?",
+            "When is my next Monthly Review Meeting?",
+            "When is my next Morning Walk?",
+            "When is my next Evening Walk?",
+            "When is my next Family Picnic?",
+            "When is my next Holiday Party?",
+            "When is Christmas?",
+            "When is my next Quantum Mechanics Workshop?",
+            "When is my next AI Ethics Lecture?"
         )
         var isGenerating = false
 
@@ -943,6 +769,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         delay(1000)  // Check every 1 second
                     }
                 }
+            }
+        }
+
+        fun convertIsoToHuman(isoRange: String): String {
+            // Split "start/end"
+            val parts = isoRange.split("/")
+            if (parts.isEmpty()) return isoRange
+            try {
+                val start = ZonedDateTime.parse(parts[0])
+                val end = if (parts.size > 1) ZonedDateTime.parse(parts[1]) else null
+
+                val dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.US)
+                val timeFormatter = DateTimeFormatter.ofPattern("h:mm a z", Locale.US)
+
+                val dateStr = start.format(dateFormatter)
+                val startTimeStr = start.format(timeFormatter)
+                val endTimeStr = end?.format(timeFormatter)
+
+                return if (end != null && start.toLocalDate() == end.toLocalDate()) {
+                    // Same day: "Tuesday, July 8, 2025, 12:00 PM - 1:00 PM MST"
+                    "$dateStr, $startTimeStr - $endTimeStr"
+                } else if (end != null) {
+                    // Different day: "Tuesday, July 8, 2025, 12:00 PM MST - Wednesday, July 9, 2025, 1:00 PM MST"
+                    "$dateStr, $startTimeStr - ${end.format(dateFormatter)}, ${end.format(timeFormatter)}"
+                } else {
+                    // Only start time
+                    "$dateStr, $startTimeStr"
+                }
+            } catch (e: Exception) {
+                return isoRange // fallback if parsing fails
             }
         }
         fun enrichPrompt(
@@ -961,19 +817,51 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val kgText = loadKGFromProvider(activity)
                 val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
 
-                val relevantLines = keywords.flatMap { keyword ->
+//                val relevantLines = keywords.flatMap { keyword ->
+//                    val regex = Regex("\\b${Regex.escape(keyword.lowercase())}\\b")
+//                    kgText.lines().filter { line ->
+//                        regex.containsMatchIn(line.lowercase().replace("\"", ""))
+//                    }
+//                }
+//
+//                val knowledgeGraph = relevantLines.joinToString("\n") {
+//                    val parts = it.split(",")
+//                    if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
+//                }
+//
+//                "$header\n$knowledgeGraph\n\n$prompt"
+                val relevantLines = mutableSetOf<String>()
+                for (keyword in keywords) {
                     val regex = Regex("\\b${Regex.escape(keyword.lowercase())}\\b")
-                    kgText.lines().filter { line ->
-                        regex.containsMatchIn(line.lowercase().replace("\"", ""))
+                    kgText.lines().forEach { line ->
+                        if (regex.containsMatchIn(line.lowercase().replace("\"", ""))) {
+                            relevantLines.add(line)
+                        }
                     }
                 }
 
-                val knowledgeGraph = relevantLines.joinToString("\n") {
+// OPTIONAL: If "meeting" in prompt, sort and limit lines
+                val sortedLimitedLines = relevantLines
+                    .sortedBy { line ->
+                        // Try to extract and sort by date if possible, fallback to line itself
+                        val dateRegex = Regex("(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})")
+                        val match = dateRegex.find(line)
+                        match?.value ?: line
+                    }
+                    .take(8)  // Limit to 8 relevant events, or choose your number
+
+                val knowledgeGraph = sortedLimitedLines.joinToString("\n") {
                     val parts = it.split(",")
-                    if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
+                    if (parts.size == 3) {
+                        val subject = parts[0].trim()
+                        val predicate = parts[1].trim()
+                        val obj = parts[2].trim()
+                        val humanObj = if (predicate == "at") convertIsoToHuman(obj) else obj
+                        "\"$subject\" \"$predicate\" \"$humanObj\"."
+                    } else it
                 }
 
-                "$header\n$knowledgeGraph\n\n$prompt"
+                return "$header\n$knowledgeGraph\n\n$prompt"
             }
         }
         fun requestGenerate(prompt: String, activity: Activity) {
@@ -985,66 +873,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             Thread {
                 val content: ChatCompletionMessageContent
 
-//                if (useRAG.value) {
-//                    val rag = ragModel
-//                    if (rag == null) {
-//                        Log.e("RAG", "RAG model not initialized, skipping RAG response.")
-//                        appendMessage(MessageRole.Assistant, "Sorry, the RAG model is not ready yet.")
-//                        switchToReady()
-//                        return@Thread
-//                    }
 //
-//                    val retrievalStart = System.currentTimeMillis()
-//                    val relevantContext = rag.runRAGQuery(prompt, engine)
-//                    val retrievalEnd = System.currentTimeMillis()
-//                    Log.d("RAG_TIMING", "RAG retrieval took ${retrievalEnd - retrievalStart}ms")
-//                    try {
-//                        val logFile = File(activity.getExternalFilesDir(null), "retrieval_log.txt")
-//                        val logEntry = "RAG | ${prompt.trim()} | ${retrievalEnd - retrievalStart}ms\n"
-//                        logFile.appendText(logEntry)
-//                    } catch (e: Exception) {
-//                        Log.e("RETRIEVAL_LOG", "Failed to log RAG retrieval time: ${e.message}")
-//                    }
-//                    val combinedPrompt = "$relevantContext\n\n$prompt"
-////                    val combinedPrompt = "$relevantContext"
-////                    Log.d("RAG_PROMPT", "Final prompt passed to engine:\n-----\n$relevantContext\n-----\n$prompt")
-//                    Log.d("RAG_PROMPT", "Final prompt passed to engine:\n$combinedPrompt")
-//
-//                    content = ChatCompletionMessageContent(text = combinedPrompt)
-//                } else {
-//                    val retrievalStart = System.currentTimeMillis()
-//                    val kgText = loadKGFromProvider(activity)
-//                    val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
-//
-//                    val relevantLines = keywords.flatMap { keyword ->
-//                        val regex = Regex("\\b${Regex.escape(keyword.lowercase())}\\b")
-//                        kgText.lines().filter { line ->
-//                            regex.containsMatchIn(line.lowercase().replace("\"", ""))
-//                        }
-//                    }
-//
-//                    val knowledgeGraph = relevantLines.joinToString("\n") {
-//                        val parts = it.split(",")
-//                        if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
-//                    }
-//
-////                    val knowledgeGraph = kgText.lines().joinToString("\n") {
-////                        val parts = it.split(",")
-////                        if (parts.size == 3) "${parts[0].trim()} ${parts[1].trim()} ${parts[2].trim()}." else it
-////                    }
-//                    val combinedPrompt = "$knowledgeGraph\n\n$prompt"
-//                    Log.d("NON_RAG_PROMPT", "$combinedPrompt")
-//                    val retrievalEnd = System.currentTimeMillis()
-//                    Log.d("NON_RAG_TIMING", "Fallback .csv response prep took ${retrievalEnd - retrievalStart}ms")
-//                    try {
-//                        val logFile = File(activity.getExternalFilesDir(null), "retrieval_log.txt")
-//                        val logEntry = "non-RAG | ${prompt.trim()} | ${retrievalEnd - retrievalStart}ms\n"
-//                        logFile.appendText(logEntry)
-//                    } catch (e: Exception) {
-//                        Log.e("RETRIEVAL_LOG", "Failed to log non-RAG retrieval time: ${e.message}")
-//                    }
-//                    content = ChatCompletionMessageContent(text = combinedPrompt)
-//                }
                 val retrievalStart = System.currentTimeMillis()
                 val combinedPrompt = enrichPrompt(prompt, activity, useRAG.value, ragModel, engine)
                 val retrievalEnd = System.currentTimeMillis()
