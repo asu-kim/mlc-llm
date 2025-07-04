@@ -37,6 +37,8 @@ import androidx.core.content.ContextCompat
 import java.util.jar.Manifest
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
+import java.text.SimpleDateFormat
+import java.util.Date
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     val modelList = emptyList<ModelState>().toMutableStateList()
@@ -700,12 +702,384 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return "data:image/jpg;base64,$imageBase64"
         }
 
-        fun requestGenerate(prompt: String, activity: Activity) {
+        val batchPrompts = listOf(
+//            "When is my Advanced Data Structures?",
+//            "When is my Advanced Physics?",
+//            "When is my AI Ethics Lecture?",
+//            "When is my Art History?",
+//            "When is my Astrophysics Seminar?",
+//            "When is my Beach Day with Friends?",
+//            "When is my Big Data Analytics?",
+//            "When does my Breakfast start?",
+//            "When is my Catch-up with Friends?",
+//            "When is my Chemistry Seminar?",
+//            "When is my Christmas?",
+//            "When is my Christmas Celebration?",
+//            "When is my Client Call?",
+//            "When is my Client Feedback Session?",
+//            "When are my Client Kickoff Meetings?",
+//            "When is my Client Presentation?",
+//            "When is my Client Presentation Preparation?",
+//            "When is my Client Workshop?",
+//            "When is my Cloud Computing Basics?",
+//            "When is my Computer Science Workshop?",
+//            "When is my Data Science Fundamentals?",
+//            "When are my Department Meetings?",
+//            "When is my Design Review?",
+//            "When is my Design Workshop?",
+//            "When is my Dinner?",
+//            "When is my Diwali?",
+//            "When is my Dussehra?",
+//            "When is my Environmental Chemistry?",
+//            "When do I have my Evening Walk?",
+//            "When is my Family BBQ?",
+//            "When is my Dinner?",
+//            "When is my Family Game Night?",
+//            "When is my Family Movie Night?",
+//            "When is my Family Outing?",
+//            "When is my Family Picnic?",
+//            "When is my Family Time?",
+//            "When is my Friends' Game Night?",
+//            "When is my Game Night?",
+//            "When is my Ganesh Chaturthi?",
+//            "When is my Hiking Trip?",
+//            "When is my History Lecture?",
+//            "When is my Holiday Party?",
+//            "When is my Holiday Party with Friends?",
+//            "When is my Holiday Preparations?",
+//            "When is my Inorganic Chemistry Lab?",
+//            "When is my Introduction to AI?",
+//            "When is my Lunch?",
+//            "When is my Machine Learning Workshop?",
+//            "When are my Marketing Strategy Meetings?",
+//            "When is my Math Lecture?",
+//            "When is my Meditation?",
+//            "When is my Modern History Lecture?",
+//            "When are my Monthly Kickoff Meetings?",
+//            "When are my Monthly Review Meetings?",
+//            "When is my Morning Exercise?",
+//            "When is my Morning Jog?",
+//            "When do I have my Morning Run?",
+//            "When do I have my Morning Walk?",
+//            "When is my Morning Yoga?",
+//            "When is my Neural Networks Introduction?",
+//            "When is my New Year's Eve?",
+//            "When are my One-on-One Meetings?",
+//            "When is my Organic Chemistry Lab?",
+//            "When is my Philosophy of Science?",
+//            "When is my Physical Chemistry?",
+//            "When is my Physics Lab?",
+//            "When is my Planning Next Day?",
+//            "When is my Product Demo?",
+//            "When are my Product Development Meetings?",
+//            "When are my Product Launch Meetings?",
+//            "When is my Programming in Python?",
+//            "When is my Project Kickoff?",
+//            "When are my Project Kickoff Meetings?",
+//            "When is my Quantum Mechanics Workshop?",
+//            "When is my Raksha Bandhan?",
+//            "When is my Reading Time?",
+//            "When are my Retrospective Meetings?",
+//            "When are my Stand-up Meetings?",
+//            "When is my Team Building Activity?",
+//            "When are my Team Meetings?",
+//            "When is my Team Sync?",
+//            "When is my Visit to Aunt's House?",
+//            "When is my Visit to Grandparents?",
+//            "When is my Weekly Sync-Up?",
+            "When is my Weekly Team Standup?",
+            "When is my Work Session?",
+            "When is my World History Lecture?",
+            "When is my Year-End Review?"
+        )
+        var isGenerating = mutableStateOf(false)
+        fun batchGenerate(activity: Activity) {
+            if (isGenerating.value) return
+            isGenerating.value = true
+
+            viewModelScope.launch {
+                for ((index, prompt) in batchPrompts.withIndex()) {
+                    Log.d("BATCH_PROMPT", "Running prompt ${index + 1} of ${batchPrompts.size}")
+                    val doneSignal = CompletableDeferred<Unit>()
+                    requestGenerate(prompt, activity, doneSignal)
+                    doneSignal.await() //  Wait for completion
+                }
+
+                isGenerating.value = false
+            }
+        }
+//        fun requestGenerate(prompt: String, activity: Activity) {
+//            require(chatable())
+//            switchToGenerating()
+//            appendMessage(MessageRole.User, prompt)
+//            appendMessage(MessageRole.Assistant, "")
+////            var content = ChatCompletionMessageContent(text=prompt)
+//
+//            val calendarEvents = CalendarUtils.fetchAllCalendarEvents(activity)
+//            val contextText = if (calendarEvents.isNotEmpty())
+//                "Upcoming calendar events:\n" + calendarEvents.joinToString("\n") + "\n\n"
+//            else
+//                ""
+//
+//            val enrichedPrompt = contextText + prompt
+//            Log.d("CALENDAR_PROMPT", "Calendar prompt: $enrichedPrompt")
+//            var content = ChatCompletionMessageContent(text = enrichedPrompt)
+//            if (imageUri != null) {
+//                val uri = imageUri
+//                val bitmap = uri?.let {
+//                    activity.contentResolver.openInputStream(it)?.use { input ->
+//                        BitmapFactory.decodeStream(input)
+//                    }
+//                }
+//                val imageBase64URL = bitmapToURL(bitmap!!)
+//                Log.v("requestGenerate", "image base64 url: $imageBase64URL")
+//                val parts = listOf(
+//                    mapOf("type" to "text", "text" to prompt),
+//                    mapOf("type" to "image_url", "image_url" to imageBase64URL)
+//                )
+//                content = ChatCompletionMessageContent(parts=parts)
+//                imageUri = null
+//            }
+//
+//            executorService.submit {
+//                historyMessages.add(ChatCompletionMessage(
+//                    role = OpenAIProtocol.ChatCompletionRole.user,
+//                    content = content
+//                ))
+//
+////                viewModelScope.launch {
+////                    val responses = engine.chat.completions.create(
+////                        messages = historyMessages,
+////                        stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+////                    )
+////
+////                    var finishReasonLength = false
+////                    var streamingText = ""
+////
+////                    for (res in responses) {
+////                        if (!callBackend {
+////                            for (choice in res.choices) {
+////                                choice.delta.content?.let { content ->
+////                                    streamingText += content.asText()
+////                                }
+////                                choice.finish_reason?.let { finishReason ->
+////                                    if (finishReason == "length") {
+////                                        finishReasonLength = true
+////                                    }
+////                                }
+////                            }
+////                            updateMessage(MessageRole.Assistant, streamingText)
+////                            res.usage?.let { finalUsage ->
+////                                report.value = finalUsage.extra?.asTextLabel() ?: ""
+////                            }
+////                            if (finishReasonLength) {
+////                                streamingText += " [output truncated due to context length limit...]"
+////                                updateMessage(MessageRole.Assistant, streamingText)
+////                            }
+////                        });
+////                    }
+////                    if (streamingText.isNotEmpty()) {
+////                        historyMessages.add(ChatCompletionMessage(
+////                            role = OpenAIProtocol.ChatCompletionRole.assistant,
+////                            content = streamingText
+////                        ))
+////                        streamingText = ""
+////                    } else {
+////                        if (historyMessages.isNotEmpty()) {
+////                            historyMessages.removeAt(historyMessages.size - 1)
+////                        }
+////                    }
+////
+////                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
+////                    try {
+////
+////                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
+////
+////                        // Check if file is new and add header
+////                        if (!logFile.exists()) {
+////                            logFile.writeText("prompt,answers\n")
+////                        }
+////
+////                        // Format the row as CSV
+////                        val promptClean = prompt.trim().replace(",", ";") // Avoid breaking CSV
+////                        val answerClean = streamingText.trim().replace(",", ";") // Avoid breaking CSV
+////
+////                        val logEntry = "$promptClean,\"[$answerClean]\""
+////
+////                        // Append row to file
+////                        logFile.appendText(logEntry + "\n")
+////
+////                        Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
+////
+////                    } catch (e: Exception) {
+////                        Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
+////                    }
+////                }
+//
+//
+//                viewModelScope.launch {
+//                    var streamingText = ""
+//                    var finishReasonLength = false
+//
+//                    try {
+//                        withTimeout(3 * 60 * 1000L) { // 3 minutes timeout
+//                            val responses = engine.chat.completions.create(
+//                                messages = historyMessages,
+//                                stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+//                            )
+//
+//                            for (res in responses) {
+//                                if (!callBackend {
+//                                        for (choice in res.choices) {
+//                                            choice.delta.content?.let { content ->
+//                                                streamingText += content.asText()
+//                                            }
+//                                            choice.finish_reason?.let { finishReason ->
+//                                                if (finishReason == "length") {
+//                                                    finishReasonLength = true
+//                                                }
+//                                            }
+//                                        }
+//                                        updateMessage(MessageRole.Assistant, streamingText)
+//                                        res.usage?.let { finalUsage ->
+//                                            report.value = finalUsage.extra?.asTextLabel() ?: ""
+//                                        }
+//                                        if (finishReasonLength) {
+//                                            streamingText += " [output truncated due to context length limit...]"
+//                                            updateMessage(MessageRole.Assistant, streamingText)
+//                                        }
+//                                    }
+//                                ) {
+//                                    Log.e("GENERATION", "callBackend failed for response chunk.")
+//                                }
+//                            }
+//                        }
+//                    } catch (e: TimeoutCancellationException) {
+//                        Log.e("TIMEOUT", "Model took longer than 3 minutes.")
+//                        updateMessage(MessageRole.Assistant, "[ERROR: Model response timed out after 3 minutes.]")
+//
+//                        // Log timeout to CSV
+//                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
+//                        if (!logFile.exists()) {
+//                            logFile.writeText("prompt,answers\n")
+//                        }
+//                        val promptClean = prompt.trim().replace(",", ";")
+//                        val logEntry = "$promptClean,\"[ERROR: Model timeout]\""
+//                        logFile.appendText(logEntry + "\n")
+//
+//                        // Cleanup state
+//                        if (modelChatState.value == ModelChatState.Generating) switchToReady()
+//                        return@launch
+//                    } catch (e: Exception) {
+//                        Log.e("GENERATION", "Unexpected error: ${e.message}")
+//                    }
+//
+//                    // Normal response logging if no timeout
+//                    if (streamingText.isNotEmpty()) {
+//                        historyMessages.add(
+//                            ChatCompletionMessage(
+//                                role = OpenAIProtocol.ChatCompletionRole.assistant,
+//                                content = streamingText
+//                            )
+//                        )
+//                    } else {
+//                        if (historyMessages.isNotEmpty()) {
+//                            historyMessages.removeAt(historyMessages.size - 1)
+//                        }
+//                    }
+//
+//                    try {
+//                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
+//                        if (!logFile.exists()) {
+//                            logFile.writeText("prompt,answers\n")
+//                        }
+//
+//                        val promptClean = prompt.trim().replace(",", ";")
+//                        val answerClean = streamingText.trim().replace(",", ";")
+//                        val logEntry = "$promptClean,\"[$answerClean]\""
+//                        logFile.appendText(logEntry + "\n")
+//                        Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
+//                    } catch (e: Exception) {
+//                        Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
+//                    }
+//
+//                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
+//                }
+//            }
+//        }
+// User context fields
+        private var userName: String = "Deeksha Prahlad"
+        private var userRole: String = "PhD student in computer science"
+        private var userTimezone: String = "MST"
+        private var userLocation: String = "Tempe, AZ"
+
+        // Optional setter if needed later
+        fun setUserProfile(name: String, role: String, timezone: String) {
+            userName = name
+            userRole = role
+            userTimezone = timezone
+        }
+
+        fun setUserLocation(location: String) {
+            userLocation = location
+        }
+        fun getUserHeader(): String {
+            val now = java.time.ZonedDateTime.now()
+            val timeFormatted = now.toLocalTime().toString()
+            val timeOfDay = when (now.hour) {
+                in 5..11 -> "morning"
+                12 -> "noon"
+                in 13..16 -> "afternoon"
+                in 17..20 -> "evening"
+                else -> "night"
+            }
+
+            return """
+        [User: $userName | Role: $userRole | Location: $userLocation | TZ: $userTimezone]
+        [Date: ${now.toLocalDate()} | Time: $timeFormatted (${now.zone}) | Part of Day: $timeOfDay]
+    """.trimIndent()
+        }
+        private fun logEvalAndResponse(
+            activity: Activity,
+            prompt: String,
+            answer: String,
+            responseStartTime: Long,
+            generationEndTime: Long,
+            totalStartTime: Long
+        ) {
+            val safePrompt = prompt.replace("\"", "\"\"").replace(",", ";")
+            val safeAnswer = answer.replace("\"", "\"\"").replace(",", ";")
+            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(Date())
+
+            val mode = "Baseline"
+            val responseMs = responseStartTime - totalStartTime
+            val generationMs = generationEndTime - responseStartTime
+            val totalMs = generationEndTime - totalStartTime
+
+            try {
+                // === Eval Log ===
+                val evalFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
+                if (!evalFile.exists()) evalFile.writeText("prompt,answers\n")
+                val evalEntry = "\"$safePrompt\",\"[$safeAnswer]\"\n"
+                evalFile.appendText(evalEntry)
+
+                // === Detailed Response Log ===
+                val responseFile = File(activity.getExternalFilesDir(null), "response_log.csv")
+                if (!responseFile.exists()) responseFile.writeText("Mode,Prompt,Response(ms),Generation(ms),Total(ms),Timestamp\n")
+                val responseEntry = "$mode,\"$safePrompt\",$responseMs,$generationMs,$totalMs,\"$timestamp\"\n"
+                responseFile.appendText(responseEntry)
+
+                Log.d("LOGGING", "Logged both eval and response.")
+            } catch (e: Exception) {
+                Log.e("LOGGING", "Logging failed: ${e.message}")
+            }
+        }
+        fun requestGenerate(prompt: String, activity: Activity, doneSignal: CompletableDeferred<Unit>? = null) {
             require(chatable())
             switchToGenerating()
             appendMessage(MessageRole.User, prompt)
             appendMessage(MessageRole.Assistant, "")
-//            var content = ChatCompletionMessageContent(text=prompt)
+            val header = getUserHeader()
 
             val calendarEvents = CalendarUtils.fetchAllCalendarEvents(activity)
             val contextText = if (calendarEvents.isNotEmpty())
@@ -713,160 +1087,69 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             else
                 ""
 
-            val enrichedPrompt = contextText + prompt
-            Log.d("CALENDAR_PROMPT", "Calendar prompt: $enrichedPrompt")
-            var content = ChatCompletionMessageContent(text = enrichedPrompt)
-            if (imageUri != null) {
-                val uri = imageUri
-                val bitmap = uri?.let {
-                    activity.contentResolver.openInputStream(it)?.use { input ->
-                        BitmapFactory.decodeStream(input)
-                    }
-                }
-                val imageBase64URL = bitmapToURL(bitmap!!)
-                Log.v("requestGenerate", "image base64 url: $imageBase64URL")
-                val parts = listOf(
-                    mapOf("type" to "text", "text" to prompt),
-                    mapOf("type" to "image_url", "image_url" to imageBase64URL)
-                )
-                content = ChatCompletionMessageContent(parts=parts)
-                imageUri = null
-            }
+            val enrichedPrompt = "$header\n\n$contextText$prompt"
+            Log.d("CALENDAR_PROMPT", enrichedPrompt)
+
+            val content = ChatCompletionMessageContent(text = enrichedPrompt)
 
             executorService.submit {
-                historyMessages.add(ChatCompletionMessage(
-                    role = OpenAIProtocol.ChatCompletionRole.user,
-                    content = content
-                ))
-
-//                viewModelScope.launch {
-//                    val responses = engine.chat.completions.create(
-//                        messages = historyMessages,
-//                        stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
-//                    )
-//
-//                    var finishReasonLength = false
-//                    var streamingText = ""
-//
-//                    for (res in responses) {
-//                        if (!callBackend {
-//                            for (choice in res.choices) {
-//                                choice.delta.content?.let { content ->
-//                                    streamingText += content.asText()
-//                                }
-//                                choice.finish_reason?.let { finishReason ->
-//                                    if (finishReason == "length") {
-//                                        finishReasonLength = true
-//                                    }
-//                                }
-//                            }
-//                            updateMessage(MessageRole.Assistant, streamingText)
-//                            res.usage?.let { finalUsage ->
-//                                report.value = finalUsage.extra?.asTextLabel() ?: ""
-//                            }
-//                            if (finishReasonLength) {
-//                                streamingText += " [output truncated due to context length limit...]"
-//                                updateMessage(MessageRole.Assistant, streamingText)
-//                            }
-//                        });
-//                    }
-//                    if (streamingText.isNotEmpty()) {
-//                        historyMessages.add(ChatCompletionMessage(
-//                            role = OpenAIProtocol.ChatCompletionRole.assistant,
-//                            content = streamingText
-//                        ))
-//                        streamingText = ""
-//                    } else {
-//                        if (historyMessages.isNotEmpty()) {
-//                            historyMessages.removeAt(historyMessages.size - 1)
-//                        }
-//                    }
-//
-//                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
-//                    try {
-//
-//                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
-//
-//                        // Check if file is new and add header
-//                        if (!logFile.exists()) {
-//                            logFile.writeText("prompt,answers\n")
-//                        }
-//
-//                        // Format the row as CSV
-//                        val promptClean = prompt.trim().replace(",", ";") // Avoid breaking CSV
-//                        val answerClean = streamingText.trim().replace(",", ";") // Avoid breaking CSV
-//
-//                        val logEntry = "$promptClean,\"[$answerClean]\""
-//
-//                        // Append row to file
-//                        logFile.appendText(logEntry + "\n")
-//
-//                        Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
-//
-//                    } catch (e: Exception) {
-//                        Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
-//                    }
-//                }
-
+                val totalStartTime = System.currentTimeMillis()
+                var responseStartTime = totalStartTime
+                var generationEndTime = totalStartTime
+                var receivedFirstToken = false
+                historyMessages.clear()
+                historyMessages.add(
+                    ChatCompletionMessage(
+                        role = OpenAIProtocol.ChatCompletionRole.user,
+                        content = content
+                    )
+                )
 
                 viewModelScope.launch {
                     var streamingText = ""
                     var finishReasonLength = false
 
                     try {
-                        withTimeout(3 * 60 * 1000L) { // 3 minutes timeout
+                        withTimeout(180_000L) {
                             val responses = engine.chat.completions.create(
                                 messages = historyMessages,
                                 stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
                             )
-
                             for (res in responses) {
                                 if (!callBackend {
                                         for (choice in res.choices) {
-                                            choice.delta.content?.let { content ->
-                                                streamingText += content.asText()
-                                            }
-                                            choice.finish_reason?.let { finishReason ->
-                                                if (finishReason == "length") {
-                                                    finishReasonLength = true
+                                            choice.delta.content?.let {
+                                                if (!receivedFirstToken) {
+                                                    responseStartTime = System.currentTimeMillis()
+                                                    receivedFirstToken = true
                                                 }
+                                                streamingText += it.asText()
                                             }
+                                            if (choice.finish_reason == "length") finishReasonLength = true
                                         }
                                         updateMessage(MessageRole.Assistant, streamingText)
-                                        res.usage?.let { finalUsage ->
-                                            report.value = finalUsage.extra?.asTextLabel() ?: ""
-                                        }
+                                        res.usage?.let { report.value = it.extra?.asTextLabel() ?: "" }
                                         if (finishReasonLength) {
-                                            streamingText += " [output truncated due to context length limit...]"
+                                            streamingText += " [output truncated due to context limit]"
                                             updateMessage(MessageRole.Assistant, streamingText)
                                         }
                                     }
                                 ) {
-                                    Log.e("GENERATION", "callBackend failed for response chunk.")
+                                    Log.e("GENERATION", "callBackend failed")
                                 }
                             }
                         }
                     } catch (e: TimeoutCancellationException) {
-                        Log.e("TIMEOUT", "Model took longer than 3 minutes.")
-                        updateMessage(MessageRole.Assistant, "[ERROR: Model response timed out after 3 minutes.]")
-
-                        // Log timeout to CSV
-                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
-                        if (!logFile.exists()) {
-                            logFile.writeText("prompt,answers\n")
-                        }
-                        val promptClean = prompt.trim().replace(",", ";")
-                        val logEntry = "$promptClean,\"[ERROR: Model timeout]\""
-                        logFile.appendText(logEntry + "\n")
-
-                        // Cleanup state
-                        if (modelChatState.value == ModelChatState.Generating) switchToReady()
+                        updateMessage(MessageRole.Assistant, "[Timeout: No response after 3 minutes]")
+                        val now = System.currentTimeMillis()
+                        logEvalAndResponse(activity, prompt, "[Timeout]", now, now, totalStartTime)
+                        switchToReady()
+                        doneSignal?.complete(Unit)
                         return@launch
-                    } catch (e: Exception) {
-                        Log.e("GENERATION", "Unexpected error: ${e.message}")
                     }
 
-                    // Normal response logging if no timeout
+                    generationEndTime = System.currentTimeMillis()
+
                     if (streamingText.isNotEmpty()) {
                         historyMessages.add(
                             ChatCompletionMessage(
@@ -875,31 +1158,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             )
                         )
                     } else {
-                        if (historyMessages.isNotEmpty()) {
-                            historyMessages.removeAt(historyMessages.size - 1)
-                        }
+                        historyMessages.removeLastOrNull()
                     }
 
-                    try {
-                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
-                        if (!logFile.exists()) {
-                            logFile.writeText("prompt,answers\n")
-                        }
-
-                        val promptClean = prompt.trim().replace(",", ";")
-                        val answerClean = streamingText.trim().replace(",", ";")
-                        val logEntry = "$promptClean,\"[$answerClean]\""
-                        logFile.appendText(logEntry + "\n")
-                        Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
-                    } catch (e: Exception) {
-                        Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
-                    }
+                    logEvalAndResponse(
+                        activity,
+                        prompt,
+                        streamingText,
+                        responseStartTime,
+                        generationEndTime,
+                        totalStartTime
+                    )
 
                     if (modelChatState.value == ModelChatState.Generating) switchToReady()
+                    doneSignal?.complete(Unit)
                 }
             }
         }
-
         private fun appendMessage(role: MessageRole, text: String) {
             messages.add(MessageData(role, text))
         }

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Divider
@@ -322,6 +323,20 @@ fun SendMessageView(chatState: AppViewModel.ChatState, activity: Activity) {
             Icon(
                 imageVector = Icons.Filled.Send,
                 contentDescription = "send message",
+            )
+        }
+        IconButton(
+            onClick = {
+                chatState.batchGenerate(activity)
+            },
+            modifier = Modifier
+                .aspectRatio(1f)
+                .weight(1f),
+            enabled = chatState.chatable()
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PlayArrow,
+                contentDescription = "Run batch prompts",
             )
         }
     }
