@@ -703,94 +703,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val batchPrompts = listOf(
-//            "When is my Advanced Data Structures?",
-//            "When is my Advanced Physics?",
-//            "When is my AI Ethics Lecture?",
-//            "When is my Art History?",
-//            "When is my Astrophysics Seminar?",
-//            "When is my Beach Day with Friends?",
-//            "When is my Big Data Analytics?",
-//            "When does my Breakfast start?",
-//            "When is my Catch-up with Friends?",
-//            "When is my Chemistry Seminar?",
-//            "When is my Christmas?",
-//            "When is my Christmas Celebration?",
-//            "When is my Client Call?",
-//            "When is my Client Feedback Session?",
-//            "When are my Client Kickoff Meetings?",
-//            "When is my Client Presentation?",
-//            "When is my Client Presentation Preparation?",
-//            "When is my Client Workshop?",
-//            "When is my Cloud Computing Basics?",
-//            "When is my Computer Science Workshop?",
-//            "When is my Data Science Fundamentals?",
-//            "When are my Department Meetings?",
-//            "When is my Design Review?",
-//            "When is my Design Workshop?",
-//            "When is my Dinner?",
-//            "When is my Diwali?",
-//            "When is my Dussehra?",
-//            "When is my Environmental Chemistry?",
-//            "When do I have my Evening Walk?",
-//            "When is my Family BBQ?",
-//            "When is my Dinner?",
-//            "When is my Family Game Night?",
-//            "When is my Family Movie Night?",
-//            "When is my Family Outing?",
-//            "When is my Family Picnic?",
-//            "When is my Family Time?",
-//            "When is my Friends' Game Night?",
-//            "When is my Game Night?",
-//            "When is my Ganesh Chaturthi?",
-//            "When is my Hiking Trip?",
-//            "When is my History Lecture?",
-//            "When is my Holiday Party?",
-//            "When is my Holiday Party with Friends?",
-//            "When is my Holiday Preparations?",
-//            "When is my Inorganic Chemistry Lab?",
-//            "When is my Introduction to AI?",
-//            "When is my Lunch?",
-//            "When is my Machine Learning Workshop?",
-//            "When are my Marketing Strategy Meetings?",
-//            "When is my Math Lecture?",
-//            "When is my Meditation?",
-//            "When is my Modern History Lecture?",
-//            "When are my Monthly Kickoff Meetings?",
-//            "When are my Monthly Review Meetings?",
-//            "When is my Morning Exercise?",
-//            "When is my Morning Jog?",
-//            "When do I have my Morning Run?",
-//            "When do I have my Morning Walk?",
-//            "When is my Morning Yoga?",
-//            "When is my Neural Networks Introduction?",
-//            "When is my New Year's Eve?",
-//            "When are my One-on-One Meetings?",
-//            "When is my Organic Chemistry Lab?",
-//            "When is my Philosophy of Science?",
-//            "When is my Physical Chemistry?",
-//            "When is my Physics Lab?",
-//            "When is my Planning Next Day?",
-//            "When is my Product Demo?",
-//            "When are my Product Development Meetings?",
-//            "When are my Product Launch Meetings?",
-//            "When is my Programming in Python?",
-//            "When is my Project Kickoff?",
-//            "When are my Project Kickoff Meetings?",
-//            "When is my Quantum Mechanics Workshop?",
-//            "When is my Raksha Bandhan?",
-//            "When is my Reading Time?",
-//            "When are my Retrospective Meetings?",
-//            "When are my Stand-up Meetings?",
-//            "When is my Team Building Activity?",
-//            "When are my Team Meetings?",
-//            "When is my Team Sync?",
-//            "When is my Visit to Aunt's House?",
-//            "When is my Visit to Grandparents?",
-//            "When is my Weekly Sync-Up?",
-            "When is my Weekly Team Standup?",
-            "When is my Work Session?",
-            "When is my World History Lecture?",
-            "When is my Year-End Review?"
+//            "When is my next Weekly Meeting (test)?",
+//            "When is my next Family Movie Night?",
+//            "When is my next Lunch Break?",
+//            "When is my next Work Session?",
+//            "When is my next Planning Next Day session?",
+//            "When is my next Product Demo?",
+//            "When is my next One-on-One Meeting?",
+//            "When is my next Family Dinner?",
+//            "When is my next Breakfast?",
+//            "When is my next Design Review?",
+//            "When is my next Team Sync?",
+//            "When is my next Client Presentation?",
+//            "When is my next Monthly Review Meeting?",
+//            "When is my next Morning Walk?",
+//            "When is my next Evening Walk?",
+//            "When is my next Family Picnic?",
+//            "When is my next Holiday Party?",
+//            "When is Christmas?",
+            "When is my next Quantum Mechanics Workshop?",
+            "When is my next AI Ethics Lecture?"
         )
         var isGenerating = mutableStateOf(false)
         fun batchGenerate(activity: Activity) {
@@ -808,208 +740,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 isGenerating.value = false
             }
         }
-//        fun requestGenerate(prompt: String, activity: Activity) {
-//            require(chatable())
-//            switchToGenerating()
-//            appendMessage(MessageRole.User, prompt)
-//            appendMessage(MessageRole.Assistant, "")
-////            var content = ChatCompletionMessageContent(text=prompt)
 //
-//            val calendarEvents = CalendarUtils.fetchAllCalendarEvents(activity)
-//            val contextText = if (calendarEvents.isNotEmpty())
-//                "Upcoming calendar events:\n" + calendarEvents.joinToString("\n") + "\n\n"
-//            else
-//                ""
-//
-//            val enrichedPrompt = contextText + prompt
-//            Log.d("CALENDAR_PROMPT", "Calendar prompt: $enrichedPrompt")
-//            var content = ChatCompletionMessageContent(text = enrichedPrompt)
-//            if (imageUri != null) {
-//                val uri = imageUri
-//                val bitmap = uri?.let {
-//                    activity.contentResolver.openInputStream(it)?.use { input ->
-//                        BitmapFactory.decodeStream(input)
-//                    }
-//                }
-//                val imageBase64URL = bitmapToURL(bitmap!!)
-//                Log.v("requestGenerate", "image base64 url: $imageBase64URL")
-//                val parts = listOf(
-//                    mapOf("type" to "text", "text" to prompt),
-//                    mapOf("type" to "image_url", "image_url" to imageBase64URL)
-//                )
-//                content = ChatCompletionMessageContent(parts=parts)
-//                imageUri = null
-//            }
-//
-//            executorService.submit {
-//                historyMessages.add(ChatCompletionMessage(
-//                    role = OpenAIProtocol.ChatCompletionRole.user,
-//                    content = content
-//                ))
-//
-////                viewModelScope.launch {
-////                    val responses = engine.chat.completions.create(
-////                        messages = historyMessages,
-////                        stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
-////                    )
-////
-////                    var finishReasonLength = false
-////                    var streamingText = ""
-////
-////                    for (res in responses) {
-////                        if (!callBackend {
-////                            for (choice in res.choices) {
-////                                choice.delta.content?.let { content ->
-////                                    streamingText += content.asText()
-////                                }
-////                                choice.finish_reason?.let { finishReason ->
-////                                    if (finishReason == "length") {
-////                                        finishReasonLength = true
-////                                    }
-////                                }
-////                            }
-////                            updateMessage(MessageRole.Assistant, streamingText)
-////                            res.usage?.let { finalUsage ->
-////                                report.value = finalUsage.extra?.asTextLabel() ?: ""
-////                            }
-////                            if (finishReasonLength) {
-////                                streamingText += " [output truncated due to context length limit...]"
-////                                updateMessage(MessageRole.Assistant, streamingText)
-////                            }
-////                        });
-////                    }
-////                    if (streamingText.isNotEmpty()) {
-////                        historyMessages.add(ChatCompletionMessage(
-////                            role = OpenAIProtocol.ChatCompletionRole.assistant,
-////                            content = streamingText
-////                        ))
-////                        streamingText = ""
-////                    } else {
-////                        if (historyMessages.isNotEmpty()) {
-////                            historyMessages.removeAt(historyMessages.size - 1)
-////                        }
-////                    }
-////
-////                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
-////                    try {
-////
-////                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
-////
-////                        // Check if file is new and add header
-////                        if (!logFile.exists()) {
-////                            logFile.writeText("prompt,answers\n")
-////                        }
-////
-////                        // Format the row as CSV
-////                        val promptClean = prompt.trim().replace(",", ";") // Avoid breaking CSV
-////                        val answerClean = streamingText.trim().replace(",", ";") // Avoid breaking CSV
-////
-////                        val logEntry = "$promptClean,\"[$answerClean]\""
-////
-////                        // Append row to file
-////                        logFile.appendText(logEntry + "\n")
-////
-////                        Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
-////
-////                    } catch (e: Exception) {
-////                        Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
-////                    }
-////                }
-//
-//
-//                viewModelScope.launch {
-//                    var streamingText = ""
-//                    var finishReasonLength = false
-//
-//                    try {
-//                        withTimeout(3 * 60 * 1000L) { // 3 minutes timeout
-//                            val responses = engine.chat.completions.create(
-//                                messages = historyMessages,
-//                                stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
-//                            )
-//
-//                            for (res in responses) {
-//                                if (!callBackend {
-//                                        for (choice in res.choices) {
-//                                            choice.delta.content?.let { content ->
-//                                                streamingText += content.asText()
-//                                            }
-//                                            choice.finish_reason?.let { finishReason ->
-//                                                if (finishReason == "length") {
-//                                                    finishReasonLength = true
-//                                                }
-//                                            }
-//                                        }
-//                                        updateMessage(MessageRole.Assistant, streamingText)
-//                                        res.usage?.let { finalUsage ->
-//                                            report.value = finalUsage.extra?.asTextLabel() ?: ""
-//                                        }
-//                                        if (finishReasonLength) {
-//                                            streamingText += " [output truncated due to context length limit...]"
-//                                            updateMessage(MessageRole.Assistant, streamingText)
-//                                        }
-//                                    }
-//                                ) {
-//                                    Log.e("GENERATION", "callBackend failed for response chunk.")
-//                                }
-//                            }
-//                        }
-//                    } catch (e: TimeoutCancellationException) {
-//                        Log.e("TIMEOUT", "Model took longer than 3 minutes.")
-//                        updateMessage(MessageRole.Assistant, "[ERROR: Model response timed out after 3 minutes.]")
-//
-//                        // Log timeout to CSV
-//                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
-//                        if (!logFile.exists()) {
-//                            logFile.writeText("prompt,answers\n")
-//                        }
-//                        val promptClean = prompt.trim().replace(",", ";")
-//                        val logEntry = "$promptClean,\"[ERROR: Model timeout]\""
-//                        logFile.appendText(logEntry + "\n")
-//
-//                        // Cleanup state
-//                        if (modelChatState.value == ModelChatState.Generating) switchToReady()
-//                        return@launch
-//                    } catch (e: Exception) {
-//                        Log.e("GENERATION", "Unexpected error: ${e.message}")
-//                    }
-//
-//                    // Normal response logging if no timeout
-//                    if (streamingText.isNotEmpty()) {
-//                        historyMessages.add(
-//                            ChatCompletionMessage(
-//                                role = OpenAIProtocol.ChatCompletionRole.assistant,
-//                                content = streamingText
-//                            )
-//                        )
-//                    } else {
-//                        if (historyMessages.isNotEmpty()) {
-//                            historyMessages.removeAt(historyMessages.size - 1)
-//                        }
-//                    }
-//
-//                    try {
-//                        val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
-//                        if (!logFile.exists()) {
-//                            logFile.writeText("prompt,answers\n")
-//                        }
-//
-//                        val promptClean = prompt.trim().replace(",", ";")
-//                        val answerClean = streamingText.trim().replace(",", ";")
-//                        val logEntry = "$promptClean,\"[$answerClean]\""
-//                        logFile.appendText(logEntry + "\n")
-//                        Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
-//                    } catch (e: Exception) {
-//                        Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
-//                    }
-//
-//                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
-//                }
-//            }
-//        }
 // User context fields
-        private var userName: String = "Deeksha Prahlad"
-        private var userRole: String = "PhD student in computer science"
+        private var userName: String = "Alice"
+        private var userRole: String = "Student in computer science"
         private var userTimezone: String = "MST"
         private var userLocation: String = "Tempe, AZ"
 
@@ -1086,8 +820,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 "Upcoming calendar events:\n" + calendarEvents.joinToString("\n") + "\n\n"
             else
                 ""
-
+//            val contextText = ""
             val enrichedPrompt = "$header\n\n$contextText$prompt"
+//            val enrichedPrompt = "$header\n\n$prompt"
             Log.d("CALENDAR_PROMPT", enrichedPrompt)
 
             val content = ChatCompletionMessageContent(text = enrichedPrompt)
@@ -1172,6 +907,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
                     if (modelChatState.value == ModelChatState.Generating) switchToReady()
                     doneSignal?.complete(Unit)
+
                 }
             }
         }

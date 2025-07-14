@@ -13,7 +13,8 @@ object CalendarUtils {
 
         val projection = arrayOf(
             CalendarContract.Events.TITLE,
-            CalendarContract.Events.DTSTART
+            CalendarContract.Events.DTSTART,
+            CalendarContract.Events.DTEND // <-- Add end time!
         )
 
         val sortOrder = "${CalendarContract.Events.DTSTART} ASC"
@@ -21,21 +22,28 @@ object CalendarUtils {
         val cursor: Cursor? = context.contentResolver.query(
             CalendarContract.Events.CONTENT_URI,
             projection,
-            null,            // No selection — fetch all
-            null,            // No selectionArgs
+            null,
+            null,
             sortOrder
         )
 
         cursor?.use {
             val titleIdx = it.getColumnIndex(CalendarContract.Events.TITLE)
             val startIdx = it.getColumnIndex(CalendarContract.Events.DTSTART)
+//            val endIdx = it.getColumnIndex(CalendarContract.Events.DTEND)
 
             while (it.moveToNext()) {
                 val title = it.getString(titleIdx)
                 val startTimeMillis = it.getLong(startIdx)
-                val startTime = Date(startTimeMillis)
-                val formattedTime = SimpleDateFormat("EEE, MMM d yyyy h:mm a", Locale.getDefault()).format(startTime)
-                events.add("$title at $formattedTime")
+//                val endTimeMillis = it.getLong(endIdx)
+
+                val timeFormatter = SimpleDateFormat("EEE, MMM d yyyy h:mm a", Locale.getDefault())
+                val startTimeStr = timeFormatter.format(Date(startTimeMillis))
+//                val endTimeStr = timeFormatter.format(Date(endTimeMillis))
+
+                // You can change this display as you wish:
+//                events.add("$title at $startTimeStr – $endTimeStr")
+                events.add("$title at $startTimeStr")
             }
         }
 
