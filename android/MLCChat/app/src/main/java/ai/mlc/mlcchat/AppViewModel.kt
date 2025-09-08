@@ -735,26 +735,42 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val batchPrompts = listOf(
-//            "When is my next Weekly Meeting (test)?",
-//            "When is my next Family Movie Night?",
-//            "When is my next Lunch Break?",
-//            "When is my next Work Session?",
-//            "When is my next Planning Next Day session?",
-//            "When is my next Product Demo?",
-//            "When is my next One-on-One Meeting?",
-//            "When is my next Family Dinner?",
-//            "When is my next Breakfast?",
-            "When is my next Design Review?",
-            "When is my next Team Sync?",
-            "When is my next Client Presentation?",
-            "When is my next Monthly Review Meeting?",
-            "When is my next Morning Walk?",
-            "When is my next Evening Walk?",
-            "When is my next Family Picnic?",
-            "When is my next Holiday Party?",
-            "When is Christmas?",
-            "When is my next Quantum Mechanics Workshop?",
-            "When is my next AI Ethics Lecture?"
+//            "When is Ganesh Chaturthi this year?",
+//            "What day is the Department Meeting happening?",
+//            "When is Raksha Bandhan on Alex's calendar?",
+//            "What date is the Christmas holiday listed?",
+//            "On what date is the Machine Learning Workshop?",
+//            "What time does the Weekly Meeting (test) on Tuesdays begin?",
+//            "When does Alex's Meditation session take place?",
+//            "How long is the Quantum Mechanics Workshop on November 9?",
+//            "At what time is the Christmas Celebration planned on December 21?",
+//            "When does the Family Movie Night on August 25 start?",
+//            "Where is the Weekly Meeting (test) held?",
+//            "Where is the event \"Deeksha busy\" taking place?",
+//            "What's scheduled right after the Department Meeting on September 25?",
+//            "What kind of event is on November 17, 2025?",
+//            "What is Alex doing on October 14, 2025?",
+//            "Is there a class scheduled on September 2, 2025?",
+//            "What is Alex's activity on October 19, 2025?",
+//            "Which events are related to product demos?",
+//            "Does Alex have any beach outings planned?",
+//            "What year-end event is in the calendar?",
+//            "When is my next AI Ethics Lecture?"
+//             "When is my next Weekly Meeting (test)?",
+//             "When is my next Family Movie Night?",
+//             "When is my next Lunch Break?",
+//             "When is my next Work Session?",
+//             "When is my next Planning Next Day session?",
+             "When is my next Product Demo?",
+             "When is my next One-on-One Meeting?",
+             "When is my next Family Dinner?",
+             "When is my next Breakfast?",
+             "When is my next Design Review?",
+             "When is my next Team Sync?",
+             "When is my next Client Presentation?",
+             "When is my next Monthly Review Meeting?",
+             "When is my next Morning Walk?",
+
         )
         var isGenerating = false
 
@@ -877,6 +893,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val retrievalStart = System.currentTimeMillis()
                 val combinedPrompt = enrichPrompt(prompt, activity, useRAG.value, ragModel, engine)
                 val retrievalEnd = System.currentTimeMillis()
+                val ragDuration = retrievalEnd - retrievalStart
+                Log.d("RETRIEVAL_TIME", "${if (useRAG.value) "RAG" else "non-RAG"} retrieval took ${ragDuration}ms")
                 Log.d("ENRICHED_PROMPT", combinedPrompt)
                 Log.d("RETRIEVAL_TIME", "${if (useRAG.value) "RAG" else "non-RAG"} retrieval took ${retrievalEnd - retrievalStart}ms")
                 content = ChatCompletionMessageContent(text = combinedPrompt)
@@ -972,16 +990,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             val isNewFile = !csvFile.exists()
 
                             // Write header if file is new
+//                            if (isNewFile) {
+//                                csvFile.writeText("Mode,Prompt,Response(ms),Generation(ms),Total(ms),Timestamp\n")
+//                            }
                             if (isNewFile) {
-                                csvFile.writeText("Mode,Prompt,Response(ms),Generation(ms),Total(ms),Timestamp\n")
+                                csvFile.writeText("Mode,Prompt,RAG(ms),Generation(ms),Total(ms),Timestamp\n")
                             }
 
                             val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(java.util.Date())
                             val promptClean = prompt.trim().replace("\"", "\"\"").replace("\n", " ") // Escape quotes and newlines
 
-                            val csvLine = "\"$mode\",\"$promptClean\",${retrievalEnd - retrievalStart},$generationDuration,$totalDuration,$timestamp\n"
+//                            val csvLine = "\"$mode\",\"$promptClean\",${retrievalEnd - retrievalStart},$generationDuration,$totalDuration,$timestamp\n"
+//                            csvFile.appendText(csvLine)
+                            val csvLine = "\"$mode\",\"$promptClean\",$ragDuration,$generationDuration,$totalDuration,$timestamp\n"
                             csvFile.appendText(csvLine)
-
                             Log.d("RESPONSE_CSV", "Logged response time to CSV: $csvLine")
                         } catch (e: Exception) {
                             Log.e("RESPONSE_CSV", "Failed to write response log: ${e.message}")
