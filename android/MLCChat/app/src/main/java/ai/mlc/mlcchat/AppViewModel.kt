@@ -38,7 +38,10 @@ import java.util.jar.Manifest
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
 import java.text.SimpleDateFormat
+
 import java.util.Date
+import java.util.Locale
+
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     val modelList = emptyList<ModelState>().toMutableStateList()
@@ -703,6 +706,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val batchPrompts = listOf(
+
+            "When is my next Weekly Meeting (test)?",
+            "When is my next Client Presentation?",
+            "When is my next Family Dinner?",
+
+//            "When is my next Weekly Meeting (test)?",
+//            "What time is my Department Meeting scheduled?",
+//            "Do I have any workshops coming up in September?",
+//            "When is my next Meditation session?",
+//            "Where is my Weekly Meeting (test) usually held?",
+//            "When is my next Client Presentation?",
+//            "What time is my AI Ethics Lecture?",
+//            "When is my next Product Demo?",
+//            "Do I have any Review Meetings in December?",
+//            "When is Christmas this year?",
+//            "When is my next Family Dinner?",
+//            "What events do I have on November 9, 2025?",
+//            "When is my next One-on-One Meeting?",
+//            "When is my next Design Review?",
+//            "Do I have any exams or workshops related to Chemistry?",
+//            "When is my next Holiday Party?",
+//            "Do I have any lectures scheduled in December?",
+//            "When is my next Work Session?",
+//            "What events are planned with friends in November?",
+//            "When is my next Morning Walk?",
+
 //            "When is my next Weekly Meeting (test)?",
 //            "When is my next Family Movie Night?",
 //            "When is my next Lunch Break?",
@@ -721,10 +750,258 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 //            "When is my next Family Picnic?",
 //            "When is my next Holiday Party?",
 //            "When is Christmas?",
-            "When is my next Quantum Mechanics Workshop?",
-            "When is my next AI Ethics Lecture?"
+//            "When is my next Quantum Mechanics Workshop?",
+//            "When is my next AI Ethics Lecture?",
+//            "When is Ganesh Chaturthi this year?",
+//            "What day is the Department Meeting happening?",
+//            "When is Raksha Bandhan on Alex's calendar?",
+//            "What date is the Christmas holiday listed?",
+//            "On what date is the Machine Learning Workshop?",
+//            "What time does the Weekly Meeting (test) on Tuesdays begin?",
+//            "When does Alex's Meditation session take place?",
+//            "How long is the Quantum Mechanics Workshop on November 9?",
+//            "At what time is the Christmas Celebration planned on December 21?",
+//            "When does the Family Movie Night on August 25 start?",
+//            "Where is the Weekly Meeting (test) held?",
+//            "Where is the event \"Deeksha busy\" taking place?",
+//            "What's scheduled right after the Department Meeting on September 25?",
+//            "What kind of event is on November 17, 2025?",
+//            "What is Alex doing on October 14, 2025?",
+//            "Is there a class scheduled on September 2, 2025?",
+//            "What is Alex's activity on October 19, 2025?",
+//            "Which events are related to product demos?",
+//            "Does Alex have any beach outings planned?",
+//            "What year-end event is in the calendar?",
+//            "When is my next AI Ethics Lecture?"
         )
+//        var isGenerating = mutableStateOf(false)
+//        fun batchGenerate(activity: Activity) {
+//            if (isGenerating.value) return
+//            isGenerating.value = true
+//
+//            viewModelScope.launch {
+//                for ((index, prompt) in batchPrompts.withIndex()) {
+//                    Log.d("BATCH_PROMPT", "Running prompt ${index + 1} of ${batchPrompts.size}")
+//                    val doneSignal = CompletableDeferred<Unit>()
+//                    requestGenerate(prompt, activity, doneSignal)
+//                    doneSignal.await() //  Wait for completion
+//                }
+//
+//                isGenerating.value = false
+//            }
+//        }
+////
+//// User context fields
+//        private var userName: String = "Alice"
+//        private var userRole: String = "Student in computer science"
+//        private var userTimezone: String = "MST"
+//        private var userLocation: String = "Tempe, AZ"
+//        private val csvLock = Any()
+//        private fun appendCsvRow(
+//            activity: Activity,
+//            fileName: String,
+//            header: String,
+//            row: String
+//        ) {
+//            val file = File(activity.getExternalFilesDir(null), fileName)
+//            synchronized(csvLock) {
+//                if (!file.exists() || file.length() == 0L) {
+//                    file.writeText(header + "\n")   // write header only once
+//                }
+//                file.appendText(row + "\n")         // append row always
+//            }
+//        }
+//        // Optional setter if needed later
+//        fun setUserProfile(name: String, role: String, timezone: String) {
+//            userName = name
+//            userRole = role
+//            userTimezone = timezone
+//        }
+//
+//        fun setUserLocation(location: String) {
+//            userLocation = location
+//        }
+//        fun getUserHeader(): String {
+//            val now = java.time.ZonedDateTime.now()
+//            val timeFormatted = now.toLocalTime().toString()
+//            val timeOfDay = when (now.hour) {
+//                in 5..11 -> "morning"
+//                12 -> "noon"
+//                in 13..16 -> "afternoon"
+//                in 17..20 -> "evening"
+//                else -> "night"
+//            }
+//
+//            return """
+//        [User: $userName | Role: $userRole | Location: $userLocation | TZ: $userTimezone]
+//        [Date: ${now.toLocalDate()} | Time: $timeFormatted (${now.zone}) | Part of Day: $timeOfDay]
+//    """.trimIndent()
+//        }
+//
+//        private fun logEvalAndResponse(
+//            activity: Activity,
+//            prompt: String,
+//            answer: String,
+//            responseStartTime: Long,
+//            generationEndTime: Long,
+//            totalStartTime: Long,
+//            retrievalMs: Long   // <-- NEW
+//        ) {
+//            val safePrompt = prompt.replace("\"", "\"\"").replace(",", ";")
+//            val safeAnswer = answer.replace("\"", "\"\"").replace(",", ";")
+//            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(Date())
+//
+//            val generationMs = generationEndTime - responseStartTime
+//            val totalMs = generationEndTime - totalStartTime
+//
+//            try {
+//                val evalFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
+//                if (!evalFile.exists()) evalFile.writeText("prompt,answers\n")
+//                evalFile.appendText("\"$safePrompt\",\"[$safeAnswer]\"\n")
+//
+//                val responseFile = File(activity.getExternalFilesDir(null), "response_log.csv")
+//                if (!responseFile.exists()) {
+//                    responseFile.writeText("Prompt,RAG(ms),Generation(ms),Total(ms),Timestamp\n")
+//                }
+//                val row = "\"$safePrompt\",$retrievalMs,$generationMs,$totalMs,\"$timestamp\"\n"
+//                responseFile.appendText(row)
+//
+//                Log.d("LOGGING", "Logged eval + response with retrieval time.")
+//            } catch (e: Exception) {
+//                Log.e("LOGGING", "Logging failed: ${e.message}")
+//            }
+//        }
+//        fun requestGenerate(prompt: String, activity: Activity, doneSignal: CompletableDeferred<Unit>? = null) {
+//            require(chatable())
+//            switchToGenerating()
+//            appendMessage(MessageRole.User, prompt)
+//            appendMessage(MessageRole.Assistant, "")
+//            val header = getUserHeader()
+////            val header = getUserHeader()
+//
+//// ---- measure info retrieval (baseline) ----
+//            val retrievalStart = System.currentTimeMillis()
+//            val calendarEvents = CalendarUtils.fetchAllCalendarEvents(activity)
+//            val retrievalEnd = System.currentTimeMillis()
+//            val retrievalMs = retrievalEnd - retrievalStart
+//            Log.d("RETRIEVAL_TIME", "Baseline retrieval took ${retrievalMs}ms")
+//// -------------------------------------------
+//
+//            val contextText = if (calendarEvents.isNotEmpty())
+//                "Upcoming calendar events:\n" + calendarEvents.joinToString("\n") + "\n\n"
+//            else
+//                ""
+//            val enrichedPrompt = "$header\n\n$contextText$prompt"
+//            Log.d("CALENDAR_PROMPT", enrichedPrompt)
+////            val calendarEvents = CalendarUtils.fetchAllCalendarEvents(activity)
+////            val contextText = if (calendarEvents.isNotEmpty())
+////                "Upcoming calendar events:\n" + calendarEvents.joinToString("\n") + "\n\n"
+////            else
+////                ""
+//////            val contextText = ""
+////            val enrichedPrompt = "$header\n\n$contextText$prompt"
+//////            val enrichedPrompt = "$header\n\n$prompt"
+////            Log.d("CALENDAR_PROMPT", enrichedPrompt)
+//
+//            val content = ChatCompletionMessageContent(text = enrichedPrompt)
+//
+//            executorService.submit {
+//                val totalStartTime = System.currentTimeMillis()
+//                var responseStartTime = totalStartTime
+//                var generationEndTime = totalStartTime
+//                var receivedFirstToken = false
+//                historyMessages.clear()
+//                historyMessages.add(
+//                    ChatCompletionMessage(
+//                        role = OpenAIProtocol.ChatCompletionRole.user,
+//                        content = content
+//                    )
+//                )
+//
+//                viewModelScope.launch {
+//                    var streamingText = ""
+//                    var finishReasonLength = false
+//
+//                    try {
+//                        withTimeout(180_000L) {
+//                            val responses = engine.chat.completions.create(
+//                                messages = historyMessages,
+//                                stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+//                            )
+//                            for (res in responses) {
+//                                if (!callBackend {
+//                                        for (choice in res.choices) {
+//                                            choice.delta.content?.let {
+//                                                if (!receivedFirstToken) {
+//                                                    responseStartTime = System.currentTimeMillis()
+//                                                    receivedFirstToken = true
+//                                                }
+//                                                streamingText += it.asText()
+//                                            }
+//                                            if (choice.finish_reason == "length") finishReasonLength = true
+//                                        }
+//                                        updateMessage(MessageRole.Assistant, streamingText)
+//                                        res.usage?.let { report.value = it.extra?.asTextLabel() ?: "" }
+//                                        if (finishReasonLength) {
+//                                            streamingText += " [output truncated due to context limit]"
+//                                            updateMessage(MessageRole.Assistant, streamingText)
+//                                        }
+//                                    }
+//                                ) {
+//                                    Log.e("GENERATION", "callBackend failed")
+//                                }
+//                            }
+//                        }
+//                    } catch (e: TimeoutCancellationException) {
+//                        updateMessage(MessageRole.Assistant, "[Timeout: No response after 3 minutes]")
+//                        val now = System.currentTimeMillis()
+////                        logEvalAndResponse(activity, prompt, "[Timeout]", now, now, totalStartTime)
+//                        logEvalAndResponse(
+//                            activity,
+//                            prompt,
+//                            streamingText,
+//                            responseStartTime,
+//                            generationEndTime,
+//                            totalStartTime,
+//                            retrievalMs  // <-- comes from your retrieval measurement
+//                        )
+//                        switchToReady()
+//                        doneSignal?.complete(Unit)
+//                        return@launch
+//                    }
+//
+//                    generationEndTime = System.currentTimeMillis()
+//
+//                    if (streamingText.isNotEmpty()) {
+//                        historyMessages.add(
+//                            ChatCompletionMessage(
+//                                role = OpenAIProtocol.ChatCompletionRole.assistant,
+//                                content = streamingText
+//                            )
+//                        )
+//                    } else {
+//                        historyMessages.removeLastOrNull()
+//                    }
+//
+//                    logEvalAndResponse(
+//                        activity,
+//                        prompt,
+//                        streamingText,
+//                        responseStartTime,
+//                        generationEndTime,
+//                        totalStartTime,
+//                        retrievalMs   // <-- pass it here
+//                    )
+//
+//                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
+//                    doneSignal?.complete(Unit)
+//
+//                }
+//            }
+//        }
+
         var isGenerating = mutableStateOf(false)
+
         fun batchGenerate(activity: Activity) {
             if (isGenerating.value) return
             isGenerating.value = true
@@ -734,29 +1011,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     Log.d("BATCH_PROMPT", "Running prompt ${index + 1} of ${batchPrompts.size}")
                     val doneSignal = CompletableDeferred<Unit>()
                     requestGenerate(prompt, activity, doneSignal)
-                    doneSignal.await() //  Wait for completion
+                    doneSignal.await() // wait for completion
                 }
-
                 isGenerating.value = false
             }
         }
-//
-// User context fields
+
+        // --- user context (unchanged) ---
         private var userName: String = "Alice"
         private var userRole: String = "Student in computer science"
         private var userTimezone: String = "MST"
         private var userLocation: String = "Tempe, AZ"
 
-        // Optional setter if needed later
         fun setUserProfile(name: String, role: String, timezone: String) {
-            userName = name
-            userRole = role
-            userTimezone = timezone
+            userName = name; userRole = role; userTimezone = timezone
         }
+        fun setUserLocation(location: String) { userLocation = location }
 
-        fun setUserLocation(location: String) {
-            userLocation = location
-        }
         fun getUserHeader(): String {
             val now = java.time.ZonedDateTime.now()
             val timeFormatted = now.toLocalTime().toString()
@@ -767,62 +1038,75 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 in 17..20 -> "evening"
                 else -> "night"
             }
-
             return """
         [User: $userName | Role: $userRole | Location: $userLocation | TZ: $userTimezone]
         [Date: ${now.toLocalDate()} | Time: $timeFormatted (${now.zone}) | Part of Day: $timeOfDay]
     """.trimIndent()
         }
+
+        // --- CSV logging (Baseline) — ONLY time math & header changed ---
         private fun logEvalAndResponse(
             activity: Activity,
             prompt: String,
             answer: String,
             responseStartTime: Long,
             generationEndTime: Long,
-            totalStartTime: Long
+            totalStartTime: Long,
+            retrievalMs: Long
         ) {
             val safePrompt = prompt.replace("\"", "\"\"").replace(",", ";")
             val safeAnswer = answer.replace("\"", "\"\"").replace(",", ";")
-            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(Date())
+            val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", java.util.Locale.US)
+                .format(java.util.Date())
 
-            val mode = "Baseline"
-            val responseMs = responseStartTime - totalStartTime
-            val generationMs = generationEndTime - responseStartTime
-            val totalMs = generationEndTime - totalStartTime
+            // Times
+            val generationMs = (generationEndTime - responseStartTime).coerceAtLeast(0)
+            val endToEndMs   = (generationEndTime - totalStartTime).coerceAtLeast(0)
+            val totalMs      = retrievalMs + generationMs  // <-- makes bars add up
 
             try {
-                // === Eval Log ===
+                // eval log (prompt + answer)
                 val evalFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
                 if (!evalFile.exists()) evalFile.writeText("prompt,answers\n")
-                val evalEntry = "\"$safePrompt\",\"[$safeAnswer]\"\n"
-                evalFile.appendText(evalEntry)
+                evalFile.appendText("\"$safePrompt\",\"[$safeAnswer]\"\n")
 
-                // === Detailed Response Log ===
+                // timing log: Prompt,RAG,Generation,Total=RAG+Gen,EndToEnd,Timestamp
                 val responseFile = File(activity.getExternalFilesDir(null), "response_log.csv")
-                if (!responseFile.exists()) responseFile.writeText("Mode,Prompt,Response(ms),Generation(ms),Total(ms),Timestamp\n")
-                val responseEntry = "$mode,\"$safePrompt\",$responseMs,$generationMs,$totalMs,\"$timestamp\"\n"
-                responseFile.appendText(responseEntry)
+                if (!responseFile.exists()) {
+                    responseFile.writeText("Prompt,RAG(ms),Generation(ms),Total(ms),EndToEnd(ms),Timestamp\n")
+                }
+                val row = "\"$safePrompt\",$retrievalMs,$generationMs,$totalMs,$endToEndMs,\"$timestamp\"\n"
+                responseFile.appendText(row)
 
-                Log.d("LOGGING", "Logged both eval and response.")
+                Log.d("LOGGING", "Logged eval + response with retrieval time.")
             } catch (e: Exception) {
                 Log.e("LOGGING", "Logging failed: ${e.message}")
             }
         }
-        fun requestGenerate(prompt: String, activity: Activity, doneSignal: CompletableDeferred<Unit>? = null) {
+
+        fun requestGenerate(
+            prompt: String,
+            activity: Activity,
+            doneSignal: CompletableDeferred<Unit>? = null
+        ) {
             require(chatable())
             switchToGenerating()
             appendMessage(MessageRole.User, prompt)
             appendMessage(MessageRole.Assistant, "")
             val header = getUserHeader()
 
+            // ---- measure info retrieval (BASELINE) ----
+            val retrievalStart = System.currentTimeMillis()
             val calendarEvents = CalendarUtils.fetchAllCalendarEvents(activity)
+            val retrievalEnd = System.currentTimeMillis()
+            val retrievalMs = retrievalEnd - retrievalStart
+            Log.d("RETRIEVAL_TIME", "Baseline retrieval took ${retrievalMs}ms")
+            // -------------------------------------------
+
             val contextText = if (calendarEvents.isNotEmpty())
                 "Upcoming calendar events:\n" + calendarEvents.joinToString("\n") + "\n\n"
-            else
-                ""
-//            val contextText = ""
+            else ""
             val enrichedPrompt = "$header\n\n$contextText$prompt"
-//            val enrichedPrompt = "$header\n\n$prompt"
             Log.d("CALENDAR_PROMPT", enrichedPrompt)
 
             val content = ChatCompletionMessageContent(text = enrichedPrompt)
@@ -832,6 +1116,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 var responseStartTime = totalStartTime
                 var generationEndTime = totalStartTime
                 var receivedFirstToken = false
+
                 historyMessages.clear()
                 historyMessages.add(
                     ChatCompletionMessage(
@@ -874,16 +1159,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                                 }
                             }
                         }
+                        generationEndTime = System.currentTimeMillis()
                     } catch (e: TimeoutCancellationException) {
-                        updateMessage(MessageRole.Assistant, "[Timeout: No response after 3 minutes]")
                         val now = System.currentTimeMillis()
-                        logEvalAndResponse(activity, prompt, "[Timeout]", now, now, totalStartTime)
-                        switchToReady()
+                        updateMessage(MessageRole.Assistant, "[Timeout: No response after 3 minutes]")
+                        logEvalAndResponse(
+                            activity,
+                            prompt,
+                            streamingText,
+                            responseStartTime = if (receivedFirstToken) responseStartTime else totalStartTime,
+                            generationEndTime = now,
+                            totalStartTime = totalStartTime,
+                            retrievalMs = retrievalMs
+                        )
+                        if (modelChatState.value == ModelChatState.Generating) switchToReady()
                         doneSignal?.complete(Unit)
                         return@launch
                     }
-
-                    generationEndTime = System.currentTimeMillis()
 
                     if (streamingText.isNotEmpty()) {
                         historyMessages.add(
@@ -900,17 +1192,170 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         activity,
                         prompt,
                         streamingText,
-                        responseStartTime,
-                        generationEndTime,
-                        totalStartTime
+                        responseStartTime = if (receivedFirstToken) responseStartTime else totalStartTime,
+                        generationEndTime = generationEndTime,
+                        totalStartTime = totalStartTime,
+                        retrievalMs = retrievalMs
                     )
 
                     if (modelChatState.value == ModelChatState.Generating) switchToReady()
                     doneSignal?.complete(Unit)
-
                 }
             }
         }
+
+
+        //        private fun logEvalAndResponse(
+//            activity: Activity,
+//            prompt: String,
+//            answer: String,
+//            responseStartTime: Long,
+//            generationEndTime: Long,
+//            totalStartTime: Long
+//        ) {
+//            val safePrompt = prompt.replace("\"", "\"\"").replace(",", ";")
+//            val safeAnswer = answer.replace("\"", "\"\"").replace(",", ";")
+//
+//            appendCsvRow(
+//                activity = activity,
+//                fileName = "eval_log.csv",
+//                header = "prompt,answers",
+//                row = "\"$safePrompt\",\"[$safeAnswer]\""
+//            )
+//        }
+//        fun requestGenerate(prompt: String, activity: Activity, doneSignal: CompletableDeferred<Unit>? = null) {
+//            require(chatable())
+//            switchToGenerating()
+//            appendMessage(MessageRole.User, prompt)
+//            appendMessage(MessageRole.Assistant, "")
+//
+//            val header = getUserHeader()
+//
+//            // ---- measure info retrieval (baseline) ----
+//            val retrievalStart = System.currentTimeMillis()
+//            val calendarEvents = CalendarUtils.fetchAllCalendarEvents(activity)
+//            val contextText = if (calendarEvents.isNotEmpty())
+//                "Upcoming calendar events:\n" + calendarEvents.joinToString("\n") + "\n\n"
+//            else
+//                ""
+//            val retrievalEnd = System.currentTimeMillis()
+//            val retrievalMs = retrievalEnd - retrievalStart
+//            Log.d("RETRIEVAL_TIME", "baseline retrieval took ${retrievalMs}ms")
+//            // -------------------------------------------
+//
+//            val enrichedPrompt = "$header\n\n$contextText$prompt"
+//            Log.d("CALENDAR_PROMPT", enrichedPrompt)
+//            val content = ChatCompletionMessageContent(text = enrichedPrompt)
+//
+//            executorService.submit {
+//                val totalStartTime = System.currentTimeMillis()
+//                var responseStartTime = totalStartTime
+//                var generationEndTime = totalStartTime
+//                var receivedFirstToken = false
+//                historyMessages.clear()
+//                historyMessages.add(
+//                    ChatCompletionMessage(
+//                        role = OpenAIProtocol.ChatCompletionRole.user,
+//                        content = content
+//                    )
+//                )
+//
+//                viewModelScope.launch {
+//                    var streamingText = ""
+//                    var finishReasonLength = false
+//                    try {
+//                        withTimeout(180_000L) {
+//                            val responses = engine.chat.completions.create(
+//                                messages = historyMessages,
+//                                stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+//                            )
+//                            for (res in responses) {
+//                                if (!callBackend {
+//                                        for (choice in res.choices) {
+//                                            choice.delta.content?.let {
+//                                                if (!receivedFirstToken) {
+//                                                    responseStartTime = System.currentTimeMillis()
+//                                                    receivedFirstToken = true
+//                                                }
+//                                                streamingText += it.asText()
+//                                            }
+//                                            if (choice.finish_reason == "length") finishReasonLength = true
+//                                        }
+//                                        updateMessage(MessageRole.Assistant, streamingText)
+//                                        res.usage?.let { report.value = it.extra?.asTextLabel() ?: "" }
+//                                        if (finishReasonLength) {
+//                                            streamingText += " [output truncated due to context limit]"
+//                                            updateMessage(MessageRole.Assistant, streamingText)
+//                                        }
+//                                    }
+//                                ) { Log.e("GENERATION", "callBackend failed") }
+//                            }
+//                        }
+//                    } catch (_: TimeoutCancellationException) {
+//                        val now = System.currentTimeMillis()
+//                        updateMessage(MessageRole.Assistant, "[Timeout: No response after 3 minutes]")
+//                        logEvalAndResponse(activity, prompt, "[Timeout]", now, now, totalStartTime)
+//                        switchToReady()
+//                        doneSignal?.complete(Unit)
+//                        return@launch
+//                    }
+//
+//                    generationEndTime = System.currentTimeMillis()
+//
+//                    if (streamingText.isNotEmpty()) {
+//                        historyMessages.add(
+//                            ChatCompletionMessage(
+//                                role = OpenAIProtocol.ChatCompletionRole.assistant,
+//                                content = streamingText
+//                            )
+//                        )
+//                    } else {
+//                        historyMessages.removeLastOrNull()
+//                    }
+//
+//                    // ----- write retrieval time into your CSV beside generation/total -----
+////                    try {
+////                        val csv = File(activity.getExternalFilesDir(null), "response_log.csv")
+////                        val isNew = !csv.exists()
+//////                        if (isNew) csv.writeText("Mode,Prompt,Retrieval(ms),Generation(ms),Total(ms),Timestamp\n")
+////                        if (isNew) csv.writeText("Mode,Prompt,RAG(ms),Generation(ms),Total(ms),Timestamp\n")
+////                        val mode = "Baseline"
+////                        val generationMs = generationEndTime - responseStartTime
+////                        val totalMs = generationEndTime - totalStartTime
+////                        val ts = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(java.util.Date())
+////                        val promptClean = prompt.trim().replace("\"", "\"\"").replace("\n", " ")
+////                        val row = "\"$mode\",\"$promptClean\",$retrievalMs,$generationMs,$totalMs,$ts\n"
+////                        csv.appendText(row)
+////                        Log.d("RESPONSE_CSV", "Logged response: $row")
+////                    } catch (e: Exception) {
+////                        Log.e("RESPONSE_CSV", "Failed to write response log: ${e.message}")
+////                    }
+//                    try {
+//                        val mode = "Baseline"
+//                        val generationMs = generationEndTime - responseStartTime
+//                        val totalMs = generationEndTime - totalStartTime
+//                        val ts = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(java.util.Date())
+//                        val promptClean = prompt.trim().replace("\"", "\"\"").replace("\n", " ")
+//
+//                        // Column named RAG(ms), holds your retrieval time
+//                        appendCsvRow(
+//                            activity = activity,
+//                            fileName = "response_log.csv",
+//                            header = "Mode,Prompt,RAG(ms),Generation(ms),Total(ms),Timestamp",
+//                            row = "\"$mode\",\"$promptClean\",$retrievalMs,$generationMs,$totalMs,$ts"
+//                        )
+//
+//                        Log.d("RESPONSE_CSV", "Logged response row.")
+//                    } catch (e: Exception) {
+//                        Log.e("RESPONSE_CSV", "Failed to write response log: ${e.message}")
+//                    }
+//                    // ---------------------------------------------------------------------
+//
+//                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
+//                    doneSignal?.complete(Unit)
+//                }
+//            }
+//        }
         private fun appendMessage(role: MessageRole, text: String) {
             messages.add(MessageData(role, text))
         }
