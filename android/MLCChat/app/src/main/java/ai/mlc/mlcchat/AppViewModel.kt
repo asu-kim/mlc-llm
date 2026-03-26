@@ -25,6 +25,7 @@ import kotlin.concurrent.thread
 import ai.mlc.mlcllm.OpenAIProtocol.ChatCompletionMessage
 import ai.mlc.mlcllm.OpenAIProtocol.ChatCompletionMessageContent
 import android.app.Activity
+import android.content.Intent
 import kotlinx.coroutines.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -32,6 +33,16 @@ import android.net.Uri
 import java.io.ByteArrayOutputStream
 import android.util.Base64
 import android.util.Log
+import android.provider.Settings
+
+import ai.mlc.mlcllm.generateSync
+import ai.mlc.mlcllm.getEmbedding
+
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     val modelList = emptyList<ModelState>().toMutableStateList()
@@ -47,6 +58,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val appDirFile = application.getExternalFilesDir("")
     private val gson = Gson()
     private val modelIdSet = emptySet<String>().toMutableSet()
+
+
 
     companion object {
         const val AppConfigFilename = "mlc-app-config.json"
@@ -510,6 +523,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val messages = emptyList<MessageData>().toMutableStateList()
         val report = mutableStateOf("")
         val modelName = mutableStateOf("")
+        val useRAG = mutableStateOf(false)
+
+        var ragModel: RagChatModel? = null
         private var modelChatState = mutableStateOf(ModelChatState.Ready)
             @Synchronized get
             @Synchronized set
@@ -695,82 +711,392 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return "data:image/jpg;base64,$imageBase64"
         }
 
+
+// Utility function to load KG content
+        fun loadKGFromProvider(context: Context): String {
+            val uri = Uri.parse("content://com.example.knowledgegraph.kgprovider/knowledge_graph")
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+
+            val builder = StringBuilder()
+            cursor?.use {
+                val subjectIndex = it.getColumnIndexOrThrow("subject")
+                val predicateIndex = it.getColumnIndexOrThrow("predicate")
+                val objectIndex = it.getColumnIndexOrThrow("object")
+
+                while (it.moveToNext()) {
+                    val subject = it.getString(subjectIndex)
+                    val predicate = it.getString(predicateIndex)
+                    val obj = it.getString(objectIndex)
+                    builder.append("$subject,$predicate,$obj\n")
+                }
+            }
+
+            return builder.toString()
+        }
+
+
+        val batchPrompts = listOf(
+            "When is my next Weekly Meeting (test)?",
+            "When is my next Client Presentation?",
+            "When is my next Family Dinner?",
+
+            "What time is my Department Meeting on September 25, 2025?",
+            "When is my next Weekly Meeting (test) at Centerpoint on Mill?",
+            "Where is my Client Presentation scheduled on November 20, 2025?",
+
+            "When is my next Weekly Meeting (test)?",
+            "What time is my Department Meeting scheduled?",
+            "Do I have any workshops coming up in September?",
+            "When is my next Meditation session?",
+            "Where is my Weekly Meeting (test) usually held?",
+            "When is my next Client Presentation?",
+            "What time is my AI Ethics Lecture?",
+            "When is my next Product Demo?",
+            "Do I have any Review Meetings in December?",
+            "When is Christmas this year?",
+            "When is my next Family Dinner?",
+            "What events do I have on November 9, 2025?",
+            "When is my next One-on-One Meeting?",
+            "When is my next Design Review?",
+            "Do I have any exams or workshops related to Chemistry?",
+            "When is my next Holiday Party?",
+            "Do I have any lectures scheduled in December?",
+            "When is my next Work Session?",
+            "What events are planned with friends in November?",
+            "When is my next Morning Walk?",
+
+            "When is my next Weekly Meeting (test)?",
+            "When is my next Family Movie Night?",
+            "When is my next Lunch Break?",
+            "When is my next Work Session?",
+            "When is my next Planning Next Day session?",
+            "When is my next Product Demo?",
+            "When is my next One-on-One Meeting?",
+            "When is my next Family Dinner?",
+            "When is my next Breakfast?",
+            "When is my next Design Review?",
+            "When is my next Team Sync?",
+            "When is my next Client Presentation?",
+            "When is my next Monthly Review Meeting?",
+            "When is my next Morning Walk?",
+            "When is my next Evening Walk?",
+            "When is my next Family Picnic?",
+            "When is my next Holiday Party?",
+            "When is Christmas?",
+            "When is my next Quantum Mechanics Workshop?",
+            "When is my next AI Ethics Lecture?",
+            "When is Ganesh Chaturthi this year?",
+            "What day is the Department Meeting happening?",
+            "When is Raksha Bandhan on Alice's calendar?",
+            "What date is the Christmas holiday listed?",
+            "On what date is the Machine Learning Workshop?",
+            "What time does the Weekly Meeting (test) on Tuesdays begin?",
+            "When does Alice's Meditation session take place?",
+            "How long is the Quantum Mechanics Workshop on November 9?",
+            "At what time is the Christmas Celebration planned on December 21?",
+            "When does the Family Movie Night on August 25 start?",
+            "Where is the Weekly Meeting (test) held?",
+            "Where is the event \"Deeksha busy\" taking place?",
+            "What's scheduled right after the Department Meeting on September 25?",
+            "What kind of event is on November 17, 2025?",
+            "What is Alice doing on October 14, 2025?",
+            "Is there a class scheduled on September 2, 2025?",
+            "What is Alice's activity on October 19, 2025?",
+            "Which events are related to product demos?",
+            "Does Alice have any beach outings planned?",
+            "What year-end event is in the calendar?",
+            "When is my next AI Ethics Lecture?"
+
+        )
+        var isGenerating = false
+
+        fun batchGenerate(activity: Activity) {
+            viewModelScope.launch {
+                for (prompt in batchPrompts) {
+                    isGenerating = true
+                    requestGenerate(prompt, activity)
+
+                    // Wait until generation is done
+                    while (isGenerating) {
+                        delay(1000)  // Check every 1 second
+                    }
+                }
+            }
+        }
+
+
+     
+
+        
+        private fun loadKGFromProvider(activity: Activity): String {
+            
+            val providerUri = Uri.parse(
+                "content://com.example.knowledgegraph.kgprovider/knowledge_graph"
+            )
+            try {
+                activity.contentResolver.openInputStream(providerUri)?.use { inStream ->
+                    val text = inStream.bufferedReader().readText()
+                    if (text.isNotBlank()) {
+                        val lines = text.lineSequence().count()
+                        Log.d("KG", "Loaded KG via provider (lines=$lines)")
+                        return text
+                    }
+                }
+                Log.w("KG", "Provider returned empty text")
+            } catch (e: Exception) {
+                Log.e("KG", "Provider read failed: ${e.message}")
+            }
+
+           
+            return try {
+                val base = activity.getExternalFilesDir(null)?.parentFile?.parentFile
+                val csvFile = File(base, "com.example.knowledgegraph/files/Knowledge_graph.csv")
+                if (csvFile.exists()) {
+                    val text = csvFile.readText().replace("\r\n", "\n").replace("\r", "\n")
+                    val lines = text.lineSequence().count()
+                    Log.d("KG", "Loaded KG from file: ${csvFile.absolutePath} (lines=$lines)")
+                    text
+                } else {
+                    Log.e("KG", "KG CSV not found at ${csvFile.absolutePath}")
+                    ""
+                }
+            } catch (e: Exception) {
+                Log.e("KG", "Fallback file read failed: ${e.message}")
+                ""
+            }
+        }
+
+        
+        private fun parseKgTriple(line: String): Triple<String, String, String>? {
+            val cleaned = line.trim()
+            if (cleaned.isEmpty()) return null
+            // Split on commas not inside quotes
+            val parts = cleaned.split(Regex(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"))
+                .map { it.trim().trim('"') }
+            if (parts.size < 3) return null
+            val subject = parts[0]
+            val predicate = parts[1]
+            val obj = parts.subList(2, parts.size).joinToString(",")
+            return Triple(subject, predicate, obj)
+        }
+
+        
+        fun convertIsoToHuman(isoRange: String): String {
+            val parts = isoRange.split("/")
+            if (parts.isEmpty()) return isoRange
+            return try {
+                val start = ZonedDateTime.parse(parts[0])
+                val end = if (parts.size > 1) ZonedDateTime.parse(parts[1]) else null
+
+                val dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.US)
+                val timeFormatter = DateTimeFormatter.ofPattern("h:mm a z", Locale.US)
+
+                val dateStr = start.format(dateFormatter)
+                val startTimeStr = start.format(timeFormatter)
+                val endTimeStr = end?.format(timeFormatter)
+
+                if (end != null && start.toLocalDate() == end.toLocalDate()) {
+                    "$dateStr, $startTimeStr - $endTimeStr"
+                } else if (end != null) {
+                    "$dateStr, $startTimeStr - ${end.format(dateFormatter)}, ${end.format(timeFormatter)}"
+                } else {
+                    "$dateStr, $startTimeStr"
+                }
+            } catch (e: Exception) {
+                isoRange // fallback if parsing fails
+            }
+        }
+
+      
+        fun enrichPrompt(
+            prompt: String,
+            activity: Activity,
+            useRAG: Boolean,
+            ragModel: RagChatModel?,
+            engine: MLCEngine
+        ): String {
+            val header = ragModel?.getUserHeader() ?: ""
+
+            return if (useRAG) {
+                val context = ragModel?.runRAGQuery(prompt, engine) ?: ""
+                "$context\n\n$prompt"
+            } else {
+                
+                val kgText = loadKGFromProvider(activity)
+                if (kgText.isBlank()) {
+                    Log.w("KG", "KG text is blank – returning header + prompt only")
+                    return "$header\n\n$prompt"
+                }
+
+                val keywords = prompt.split(Regex("\\W+")).filter { it.isNotBlank() }
+                val kgLines = kgText.lines().filter { it.isNotBlank() }
+                val relevantLines = mutableSetOf<String>()
+
+               
+                for (line in kgLines) {
+                    val lower = line.lowercase()
+                    if (keywords.any { kw -> kw.isNotBlank() && lower.contains(kw.lowercase()) }) {
+                        relevantLines.add(line)
+                    }
+                }
+
+                
+                val candidateLines = if (relevantLines.isEmpty()) {
+                    Log.w("KG", "No KG matches for prompt; falling back to first 8 lines")
+                    kgLines.take(8).toSet()
+                } else relevantLines
+
+                
+                val parsedTriples = candidateLines.mapNotNull { parseKgTriple(it) }
+
+                
+                val sortedTriples = parsedTriples.sortedBy { (_, pred, obj) ->
+                    if (pred == "at") {
+                        val startIso = obj.substringBefore("/")
+                        try { ZonedDateTime.parse(startIso) } catch (_: Exception) { null }
+                    } else null
+                }
+
+                
+                val knowledgeGraph = sortedTriples.take(8).joinToString("\n") { (subject, predicate, obj) ->
+                    val humanObj = if (predicate == "at") convertIsoToHuman(obj) else obj
+                    "\"$subject\" \"$predicate\" \"$humanObj\"."
+                }
+
+                Log.d("KG", "KG context lines used:\n$knowledgeGraph")
+                "$header\n$knowledgeGraph\n\n$prompt"
+            }
+        }
+
+
         fun requestGenerate(prompt: String, activity: Activity) {
             require(chatable())
             switchToGenerating()
             appendMessage(MessageRole.User, prompt)
             appendMessage(MessageRole.Assistant, "")
-            var content = ChatCompletionMessageContent(text=prompt)
-            if (imageUri != null) {
-                val uri = imageUri
-                val bitmap = uri?.let {
-                    activity.contentResolver.openInputStream(it)?.use { input ->
-                        BitmapFactory.decodeStream(input)
-                    }
-                }
-                val imageBase64URL = bitmapToURL(bitmap!!)
-                Log.v("requestGenerate", "image base64 url: $imageBase64URL")
-                val parts = listOf(
-                    mapOf("type" to "text", "text" to prompt),
-                    mapOf("type" to "image_url", "image_url" to imageBase64URL)
-                )
-                content = ChatCompletionMessageContent(parts=parts)
-                imageUri = null
-            }
 
-            executorService.submit {
-                historyMessages.add(ChatCompletionMessage(
-                    role = OpenAIProtocol.ChatCompletionRole.user,
-                    content = content
-                ))
+            Thread {
+                
+                val totalStartTime = System.currentTimeMillis()
 
-                viewModelScope.launch {
-                    val responses = engine.chat.completions.create(
-                        messages = historyMessages,
-                        stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+                
+                val retrievalStart = System.currentTimeMillis()
+                val combinedPrompt = enrichPrompt(prompt, activity, useRAG.value, ragModel, engine)
+                val retrievalEnd = System.currentTimeMillis()
+                val retrievalDuration = retrievalEnd - retrievalStart
+
+                val mode = if (useRAG.value) "RAG" else "non-RAG"
+                val retrievalLabel = if (useRAG.value) "RAG retrieval" else "information retrieval"
+                Log.d("RETRIEVAL_TIME", "$mode $retrievalLabel took ${retrievalDuration}ms")
+                Log.d("ENRICHED_PROMPT", combinedPrompt)
+
+                val content = ChatCompletionMessageContent(text = combinedPrompt)
+
+               
+                executorService.submit {
+                    historyMessages.add(
+                        ChatCompletionMessage(
+                            role = OpenAIProtocol.ChatCompletionRole.user,
+                            content = content
+                        )
                     )
 
-                    var finishReasonLength = false
-                    var streamingText = ""
+                    viewModelScope.launch {
+                        val generationStartTime = System.currentTimeMillis()
 
-                    for (res in responses) {
-                        if (!callBackend {
-                            for (choice in res.choices) {
-                                choice.delta.content?.let { content ->
-                                    streamingText += content.asText()
-                                }
-                                choice.finish_reason?.let { finishReason ->
-                                    if (finishReason == "length") {
-                                        finishReasonLength = true
+                        val responses = engine.chat.completions.create(
+                            messages = historyMessages,
+                            stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
+                        )
+
+                        var finishReasonLength = false
+                        var streamingText = ""
+
+                        for (res in responses) {
+                            if (!callBackend {
+                                    for (choice in res.choices) {
+                                        choice.delta.content?.let { delta ->
+                                            streamingText += delta.asText()
+                                        }
+                                        choice.finish_reason?.let { reason ->
+                                            if (reason == "length") finishReasonLength = true
+                                        }
                                     }
-                                }
-                            }
-                            updateMessage(MessageRole.Assistant, streamingText)
-                            res.usage?.let { finalUsage ->
-                                report.value = finalUsage.extra?.asTextLabel() ?: ""
-                            }
-                            if (finishReasonLength) {
-                                streamingText += " [output truncated due to context length limit...]"
-                                updateMessage(MessageRole.Assistant, streamingText)
-                            }
-                        });
-                    }
-                    if (streamingText.isNotEmpty()) {
-                        historyMessages.add(ChatCompletionMessage(
-                            role = OpenAIProtocol.ChatCompletionRole.assistant,
-                            content = streamingText
-                        ))
-                        streamingText = ""
-                    } else {
-                        if (historyMessages.isNotEmpty()) {
-                            historyMessages.removeAt(historyMessages.size - 1)
+                                    updateMessage(MessageRole.Assistant, streamingText)
+                                    res.usage?.let { finalUsage ->
+                                        report.value = finalUsage.extra?.asTextLabel() ?: ""
+                                    }
+                                    if (finishReasonLength) {
+                                        streamingText += " [output truncated due to context length limit...]"
+                                        updateMessage(MessageRole.Assistant, streamingText)
+                                    }
+                                });
                         }
-                    }
 
-                    if (modelChatState.value == ModelChatState.Generating) switchToReady()
+                        if (streamingText.isNotEmpty()) {
+                            historyMessages.add(
+                                ChatCompletionMessage(
+                                    role = OpenAIProtocol.ChatCompletionRole.assistant,
+                                    content = streamingText
+                                )
+                            )
+                        } else {
+                            if (historyMessages.isNotEmpty()) {
+                                historyMessages.removeAt(historyMessages.size - 1)
+                            }
+                        }
+
+                       
+                        try {
+                            val logFile = File(activity.getExternalFilesDir(null), "eval_log.csv")
+                            if (!logFile.exists()) {
+                                logFile.writeText("prompt,answers\n")
+                            }
+                            val promptClean = prompt.trim().replace(",", ";")
+                            val answerClean = streamingText.trim().replace(",", ";")
+                            val logEntry = "$promptClean,\"[$answerClean]\""
+                            logFile.appendText(logEntry + "\n")
+                            Log.d("EVAL_LOG", "Logged prompt and answer to ${logFile.absolutePath}")
+                        } catch (e: Exception) {
+                            Log.e("EVAL_LOG", "Failed to log evaluation: ${e.message}")
+                        }
+
+                        if (modelChatState.value == ModelChatState.Generating) switchToReady()
+                        isGenerating = false
+
+                        
+                        val generationEndTime = System.currentTimeMillis()
+                        val generationDuration = generationEndTime - generationStartTime
+                        val totalDuration = generationEndTime - totalStartTime  
+
+                        
+                        try {
+                            val csvFile = File(activity.getExternalFilesDir(null), "response_log.csv")
+                            val isNewFile = !csvFile.exists()
+                            if (isNewFile) {
+                                csvFile.writeText("Mode,Prompt,RAG(ms),Generation(ms),Total(ms),Timestamp\n")
+                            }
+
+                            val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+                                .format(java.util.Date())
+                            val promptClean = prompt.trim().replace("\"", "\"\"").replace("\n", " ")
+
+                            
+                            val csvLine = "\"$mode\",\"$promptClean\",$retrievalDuration,$generationDuration,$totalDuration,$timestamp\n"
+                            csvFile.appendText(csvLine)
+                            Log.d("RESPONSE_CSV", "Logged response time to CSV: $csvLine")
+                        } catch (e: Exception) {
+                            Log.e("RESPONSE_CSV", "Failed to write response log: ${e.message}")
+                        }
+
+                        Log.d("GENERATION_TIMING", "$mode model generation took ${generationDuration}ms")
+                        Log.d("TOTAL_LATENCY", "$mode total response time: ${totalDuration}ms")
+                    }
                 }
-            }
+            }.start()
         }
+
+
 
         private fun appendMessage(role: MessageRole, text: String) {
             messages.add(MessageData(role, text))

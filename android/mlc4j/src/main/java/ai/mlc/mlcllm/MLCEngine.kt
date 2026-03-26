@@ -194,3 +194,34 @@ class Completions(
         return create(request)
     }
 }
+ fun MLCEngine.getEmbedding(text: String): FloatArray {
+    // Replace this with real embedding inference once available
+    return FloatArray(384) { Random.nextFloat() }
+}
+
+
+suspend fun MLCEngine.generate(prompt: String): String {
+    val message = ChatCompletionMessage(
+        role = ChatCompletionRole.user,
+        content = prompt
+    )
+
+    val responseChannel = chat.completions.create(
+        messages = listOf(message),
+        stream = true,
+        stream_options = StreamOptions(include_usage = false)
+    )
+
+    val responseBuilder = StringBuilder()
+
+    for (res in responseChannel) {
+        res.choices?.forEach {
+            it.delta?.content?.let { delta -> responseBuilder.append(delta) }
+        }
+    }
+
+    return responseBuilder.toString()
+}
+fun MLCEngine.generateSync(prompt: String): String = runBlocking {
+    generate(prompt)
+}

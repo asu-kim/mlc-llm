@@ -1,8 +1,11 @@
 package ai.mlc.mlcchat
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.location.Geocoder
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -27,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Divider
@@ -59,13 +63,38 @@ import androidx.navigation.NavController
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.launch
 
+
+
+
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import java.util.Locale
+
 @ExperimentalMaterial3Api
 @Composable
+
 fun ChatView(
-    navController: NavController, chatState: AppViewModel.ChatState, activity: Activity
-) {
+    navController: NavController,
+    chatState: AppViewModel.ChatState,
+    activity: Activity,
+    ragModel: RagChatModel
+)
+{
     val localFocusManager = LocalFocusManager.current
+    (chatState as AppViewModel.ChatState).ragModel = ragModel
     (activity as MainActivity).chatState = chatState
+    LaunchedEffect(Unit) {
+        ragModel.setUserProfile(
+            name = "Alice",
+            role = "Student in computer science",
+            timezone = "MST"
+        )
+    }
+
     Scaffold(topBar = {
         TopAppBar(
             title = {
@@ -77,7 +106,9 @@ fun ChatView(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
             navigationIcon = {
                 IconButton(
-                    onClick = { navController.popBackStack() },
+                    onClick = {
+//                        chatState.requestResetChat()
+                        navController.popBackStack() },
                     enabled = chatState.interruptable()
                 ) {
                     Icon(
@@ -143,6 +174,7 @@ fun ChatView(
             }
             Divider(thickness = 1.dp, modifier = Modifier.padding(top = 5.dp))
             SendMessageView(chatState = chatState, activity)
+            
         }
     }
 }
@@ -258,12 +290,46 @@ fun MessageView(messageData: MessageData, activity: Activity?) {
         }
     }
 }
+@Suppress("MissingPermission")
+fun getCurrentLocation(context: Context, onLocation: (String) -> Unit) {
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
+    fusedLocationClient.lastLocation
+        .addOnSuccessListener { location ->
+            if (location != null) {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                val addressList = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                val address = addressList?.firstOrNull()?.getAddressLine(0) ?: "Unknown Location"
+                onLocation(address)
+            } else {
+                onLocation("Unknown Location")
+            }
+        }
+        .addOnFailureListener {
+            onLocation("Unknown Location")
+        }
+}
 @ExperimentalMaterial3Api
 @Composable
 fun SendMessageView(chatState: AppViewModel.ChatState, activity: Activity) {
     val localFocusManager = LocalFocusManager.current
     val localActivity : MainActivity = activity as MainActivity
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Text(
+            text = if (chatState.useRAG.value) "RAG Enabled" else "RAG Disabled",
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = chatState.useRAG.value,
+            onCheckedChange = { chatState.useRAG.value = it }
+        )
+    }
     Row(
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -311,8 +377,15 @@ fun SendMessageView(chatState: AppViewModel.ChatState, activity: Activity) {
         IconButton(
             onClick = {
                 localFocusManager.clearFocus()
-                chatState.requestGenerate(text, activity)
-                text = ""
+//                chatState.requestGenerate(text, activity)
+                getCurrentLocation(activity) { location ->
+                    chatState.ragModel?.setUserLocation(location)
+                    Log.d("RAG_LOCATION", "Live location: $location")
+
+                    chatState.requestGenerate(text, activity)
+
+                    text = ""
+                }
             },
             modifier = Modifier
                 .aspectRatio(1f)
@@ -322,6 +395,20 @@ fun SendMessageView(chatState: AppViewModel.ChatState, activity: Activity) {
             Icon(
                 imageVector = Icons.Filled.Send,
                 contentDescription = "send message",
+            )
+        }
+        IconButton(
+            onClick = {
+                chatState.batchGenerate(activity)
+            },
+            modifier = Modifier
+                .aspectRatio(1f)
+                .weight(1f),
+            enabled = chatState.chatable()
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PlayArrow,
+                contentDescription = "Run batch prompts",
             )
         }
     }

@@ -22,8 +22,20 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import com.google.android.gms.location.LocationServices
+
+
+
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.provider.Settings
+import android.widget.Toast
+import ai.mlc.mlcchat.RagChatModel
+import android.location.Geocoder
+import androidx.core.location.LocationManagerCompat.getCurrentLocation
 
 class MainActivity : ComponentActivity() {
+    private lateinit var ragModel: RagChatModel
     var hasImage = false
 
     private val pickImageLauncher = registerForActivityResult(
@@ -74,6 +86,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         chatState = AppViewModel(this.application).ChatState()
+        ragModel = RagChatModel(this)
+        ragModel.loadEmbeddingsIfNeeded()
+        chatState.ragModel = ragModel
+
+
+        Log.d("RAG_INIT", "RAG assigned to ChatState: ${chatState.ragModel != null}")
         requestNeededPermissions()
 
         setContent {
@@ -81,12 +99,18 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxSize()
             ) {
                 MLCChatTheme {
-                    NavView(this)
+
+                    NavView(activity = this, ragModel = ragModel)
                 }
             }
         }
     }
-
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::ragModel.isInitialized) {
+            ragModel.clearEmbeddings()
+        }
+    }
     private fun requestNeededPermissions() {
         val permissionsToRequest = mutableListOf<String>()
 
@@ -128,6 +152,13 @@ class MainActivity : ComponentActivity() {
                 permissionsToRequest.add(Manifest.permission.CAMERA)
             }
         }
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
 
         if (permissionsToRequest.isNotEmpty()) {
             requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
@@ -154,4 +185,16 @@ class MainActivity : ComponentActivity() {
 
         takePictureLauncher.launch(cameraImageUri)
     }
+    fun openAppSettings(targetPackage: String) {
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$targetPackage")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, "App not found: $targetPackage", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 }
