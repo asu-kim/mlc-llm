@@ -25,7 +25,7 @@ import java.util.UUID
 import com.google.android.gms.location.LocationServices
 
 
-// newely added
+
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.provider.Settings
@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxSize()
             ) {
                 MLCChatTheme {
-//                    NavView(this)
+
                     NavView(activity = this, ragModel = ragModel)
                 }
             }

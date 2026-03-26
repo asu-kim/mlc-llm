@@ -64,7 +64,7 @@ import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.launch
 
 
-// new
+
 
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
@@ -174,18 +174,7 @@ fun ChatView(
             }
             Divider(thickness = 1.dp, modifier = Modifier.padding(top = 5.dp))
             SendMessageView(chatState = chatState, activity)
-            // added by deeksha
-
-//            Button(
-//                onClick = {
-//                    (activity as MainActivity).openAppSettings("com.example.knowledgegraph")
-//                },
-//                modifier = Modifier
-//                    .padding(top = 10.dp)
-//                    .align(Alignment.CenterHorizontally)
-//            ) {
-//                Text("Open Knowledge Graph Settings")
-//            }
+            
         }
     }
 }
