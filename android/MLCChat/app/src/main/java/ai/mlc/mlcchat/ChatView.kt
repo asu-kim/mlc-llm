@@ -88,11 +88,11 @@ fun ChatView(
     (chatState as AppViewModel.ChatState).ragModel = ragModel
     (activity as MainActivity).chatState = chatState
     LaunchedEffect(Unit) {
-        ragModel.setUserProfile(
-            name = "Alice",
-            role = "Student in computer science",
-            timezone = "MST"
-        )
+//        ragModel.setUserProfile(
+//            name = "Alice",
+//            role = "Student in computer science",
+//            timezone = "MST"
+//        )
     }
 
     Scaffold(topBar = {
@@ -397,20 +397,20 @@ fun SendMessageView(chatState: AppViewModel.ChatState, activity: Activity) {
                 contentDescription = "send message",
             )
         }
-        IconButton(
-            onClick = {
-                chatState.batchGenerate(activity)
-            },
-            modifier = Modifier
-                .aspectRatio(1f)
-                .weight(1f),
-            enabled = chatState.chatable()
-        ) {
-            Icon(
-                imageVector = Icons.Filled.PlayArrow,
-                contentDescription = "Run batch prompts",
-            )
-        }
+//        IconButton(
+//            onClick = {
+//                chatState.batchGenerate(activity)
+//            },
+//            modifier = Modifier
+//                .aspectRatio(1f)
+//                .weight(1f),
+//            enabled = chatState.chatable()
+//        ) {
+//            Icon(
+//                imageVector = Icons.Filled.PlayArrow,
+//                contentDescription = "Run batch prompts",
+//            )
+//        }
     }
 }
 
